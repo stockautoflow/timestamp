@@ -1,243 +1,281 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>公文スタンプアプリ デモ</title>
-<style>
-    body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background-color: #e0e0e0;
-        font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
-        margin: 0;
-    }
-    #app-container {
-        width: 350px;
-        height: 650px;
-        background-color: #fffaf0;
-        border: 10px solid #333;
-        border-radius: 40px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-    }
-    .screen {
-        width: 100%;
-        height: 100%;
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        padding: 30px 20px;
-        box-sizing: border-box;
-    }
-    .active {
-        display: flex;
-    }
-    h2 {
-        color: #ff8c00;
-        margin-bottom: 10px;
-    }
-    .stamp-area {
-        width: 200px;
-        height: 200px;
-        border: 4px dashed #ff8c00;
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        font-weight: bold;
-        color: #ff8c00;
-        margin: 30px 0;
-        cursor: pointer;
-        background-color: #ffe4b5;
-        transition: 0.2s;
-        font-size: 1.2rem;
-    }
-    .stamp-area:active {
-        transform: scale(0.95);
-        background-color: #ffc125;
-    }
-    .stamp-area.disabled {
-        border-color: #aaa;
-        color: #aaa;
-        background-color: #eee;
-        cursor: not-allowed;
-    }
-    .btn {
-        padding: 12px 24px;
-        background-color: #32cd32;
-        color: white;
-        border: none;
-        border-radius: 20px;
-        font-size: 1.1rem;
-        cursor: pointer;
-        margin-top: auto;
-        font-weight: bold;
-    }
-    /* 学習中画面用 */
-    .track {
-        width: 100%;
-        height: 40px;
-        border-bottom: 4px solid #8b4513;
-        position: relative;
-        margin: 20px 0;
-    }
-    #shinkansen {
-        font-size: 2rem;
-        position: absolute;
-        bottom: 0;
-        left: -30px;
-        transition: left 1s linear;
-    }
-    #timer-display {
-        font-size: 3rem;
-        font-weight: bold;
-        color: #333;
-    }
-    /* 結果画面用 */
-    .big-stamp {
-        font-size: 6rem;
-        margin: 20px 0;
-        animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    @keyframes pop {
-        0% { transform: scale(0); }
-        100% { transform: scale(1); }
-    }
-    /* カレンダー画面用 */
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 5px;
-        width: 100%;
-        margin-top: 20px;
-        text-align: center;
-    }
-    .cal-day { font-size: 1.5rem; }
-    .cal-header { font-size: 0.8rem; color: #666; }
-    #settings-btn {
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        font-size: 1.5rem;
-        cursor: pointer;
-        user-select: none;
-        opacity: 0.5;
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Time Stamp Kids</title>
+    
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 10px;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden; 
+        }
+
+        h2 { color: #ff8c00; font-size: 1.1rem; margin: 5px 0; min-height: 1.5em; }
+
+        .button-container { display: flex; justify-content: center; align-items: center; margin: 10px 0; }
+        .stamp-area {
+            width: 140px; height: 140px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            background-color: #fff; font-weight: bold; position: relative; 
+            transition: all 0.3s ease; cursor: pointer; font-size: 1.2rem;
+        }
+
+        .state-idle { border: 6px dashed #ff4d4d; color: #ff4d4d; }
+        .state-waiting { border: 6px dashed #ccc; color: #ccc; background-color: #f5f5f5; cursor: not-allowed; }
+        .state-active { border: 6px dashed #2ecc71; color: #2ecc71; background-color: #fff; }
+        .state-finished { border: 6px solid #2ecc71; background-color: #f0fff0; cursor: default; }
+
+        .stamp-mark-on {
+            font-size: 6rem; position: absolute;
+            animation: stampOn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+
+        @keyframes stampOn {
+            0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+
+        .hidden { display: none !important; }
+
+        .btn {
+            padding: 10px 20px; font-size: 1rem; background-color: #4CAF50;
+            color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px #2e7d32; margin: 5px;
+        }
+        .btn-reset { background-color: #ff8c00; box-shadow: 0 4px #e67e22; }
+
+        #timer-display { font-size: 2.8rem; font-weight: bold; color: #333; margin: 5px 0; font-family: monospace; }
+
+        .shinkansen-area { 
+            width: 100%; max-width: 350px; 
+            height: 55px; 
+            margin: 5px auto; position: relative; overflow: hidden; 
+            background-color: #fff; border-radius: 10px; border: 1px solid #ddd; 
+        }
+        .track { 
+            width: 100%; height: 4px; 
+            background-color: #8b4513; position: absolute; 
+            bottom: 10px; 
+        }
+        .shinkansen { 
+            width: 600px; /* 画像は倍サイズ */
+            height: auto; position: absolute; 
+            bottom: 10px; 
+            left: -640px; 
+            animation: driveForward 60s linear infinite; 
+            animation-play-state: paused; 
+        }
+        @keyframes driveForward { 
+            0% { left: -640px; } 
+            100% { left: 100%; } 
+        }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin: 5px 0; }
+        .cal-cell { 
+            width: 98%; 
+            aspect-ratio: 1 / 0.7; 
+            display: flex; flex-direction: column; align-items: center; 
+            border: 1px solid #eee; border-radius: 4px; background-color: #fff; 
+            font-size: 0.7rem; padding: 1px; box-sizing: border-box;
+            position: relative;
+        }
+        .cal-header-cell { border: none; font-weight: bold; height: auto; aspect-ratio: auto; padding: 5px 0; }
+        .sun, .holiday { color: #ff4d4d !important; background-color: #fff0f0; }
+        .sat { color: #3498db !important; background-color: #f0faff; }
+        
+        .stamp-mark { 
+            font-size: 2.8rem; /* カレンダーのスタンプ倍増 */
+            line-height: 1;
+            margin-top: 3px; 
+            z-index: 1;
+        }
+        .holiday-name { font-size: 0.4rem; transform: scale(0.8); white-space: nowrap; margin-bottom: -2px; }
+        .day-number { position: relative; z-index: 2; font-weight: bold; }
+    </style>
 </head>
 <body>
 
-<div id="app-container">
-    
-    <div id="screen-home" class="screen active">
-        <h2>🔥 いま 7日れんぞく！</h2>
-        <div class="stamp-area" onclick="startLearning()">
-            ここに<br>スタンプを<br>おしてね！
-        </div>
-        <h3 style="color:#666;">きょうの 1かいめ</h3>
-        <button class="btn" onclick="showScreen('screen-calendar')">📅 カレンダーをみる</button>
-    </div>
-
-    <div id="screen-timer" class="screen">
-        <h2>プリント がんばれ！</h2>
-        <div class="track">
-            <div id="shinkansen">🚄</div>
-        </div>
+    <div id="screen-main" class="screen">
+        <h2 id="main-message">きょうのプリントをはじめよう！</h2>
+        <div class="shinkansen-area"><div class="track"></div><img id="shinkansen" class="shinkansen" src="shinkansen.png" alt="🚅"></div>
         <div id="timer-display">00:00</div>
-        <div id="stamp-area-2" class="stamp-area disabled" onclick="finishLearning()">
-            ちょっとまってね
+        <div class="button-container">
+            <div id="unified-button" class="stamp-area state-idle">
+                <span id="label-text">スタート</span>
+                <span id="reward-display" class="stamp-mark-on hidden"></span>
+            </div>
+        </div>
+        <div class="btn-box">
+            <button id="btn-to-calendar" class="btn">📅 カレンダー</button>
+            <button id="btn-reset" class="btn btn-reset hidden">もういちど</button>
         </div>
     </div>
 
-    <div id="screen-result" class="screen">
-        <h2>🎉 おめでとう！ 🎉</h2>
-        <div class="big-stamp">🦁</div>
-        <h3 id="result-time" style="color:#333;">--ふんで できたね！</h3>
-        <button class="btn" onclick="showScreen('screen-home')">やったー！</button>
+    <div id="screen-calendar" class="screen hidden">
+        <h2 id="calendar-header">2026年 --月</h2>
+        <div id="calendar-grid" class="calendar-grid"></div>
+        <button id="btn-back-home" class="btn">◀ もどる</button>
     </div>
 
-    <div id="screen-calendar" class="screen">
-        <button class="btn" style="background-color:#999; align-self:flex-start; margin-top:0;" onclick="showScreen('screen-home')">◀ もどる</button>
-        <h2>4月のがんばり</h2>
-        <div class="calendar-grid">
-            <div class="cal-header">日</div><div class="cal-header">月</div><div class="cal-header">火</div><div class="cal-header">水</div><div class="cal-header">木</div><div class="cal-header">金</div><div class="cal-header">土</div>
-            <div class="cal-day">🦁</div><div class="cal-day">🚓</div><div class="cal-day">💤</div><div class="cal-day">🚒</div><div class="cal-day">🦕</div><div class="cal-day">🎹</div><div class="cal-day">🐰</div>
-        </div>
-        <div id="settings-btn" onmousedown="startPress()" onmouseup="cancelPress()" onmouseleave="cancelPress()" ontouchstart="startPress()" ontouchend="cancelPress()">⚙️</div>
-    </div>
+    <audio id="sound-start" src="start.mp3" preload="auto"></audio>
+    <audio id="sound-goal" src="goal.mp3" preload="auto"></audio>
 
-</div>
+    <script>
+        const db = new Dexie("TimestampKidsDB");
+        db.version(1).stores({ daily_records: "date, startTime, endTime, durationMinutes, status, earnedStamp" });
 
-<script>
-    let timerInterval;
-    let seconds = 0;
-    let shinkansenPos = -30;
-    let pressTimer;
+        const rewardList = [
+            "🏎️", "✈️", "🚀", "🚒", "🚑", "🚓", "🚜", "🚁", "🚢", "🛰️", "🛸",
+            "🦁", "🐘", "🦒", "🐼", "🐧", "🐨", "🦖", "🦄", "🐵", "🐯", "🐰",
+            "🐬", "🐳", "🐙", "🦀", "🐢", "🐠", "🦑", "🦈",
+            "🍦", "🍰", "🍎", "🍓", "🍔", "🍭", "🍩", "🍕",
+            "🌈", "☀️", "🌙", "🌟", "🍀", "🌸", "❄️", "🌵", "🌋",
+            "⚽", "⚾", "🎾", "🏹", "🎨", "🪁", "🎹", "🎸", "🎺", "🥁", "🔔", "🎶"
+        ];
 
-    function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(screenId).classList.add('active');
-    }
+        const holidays2026 = {
+            "01-01":"元日","01-12":"成人の日","02-11":"建国記念","02-23":"天皇誕生日",
+            "03-20":"春分の日","04-29":"昭和の日","05-03":"憲法記念日","05-04":"みどりの日",
+            "05-05":"こどもの日","05-06":"振替休日","07-20":"海の日","08-11":"山の日",
+            "09-21":"敬老の日","09-22":"秋分の日","10-12":"スポーツの日","11-03":"文化の日",
+            "11-23":"勤労感謝","11-24":"振替休日"
+        };
 
-    // 1回目のスタンプを押した時
-    function startLearning() {
-        showScreen('screen-timer');
-        seconds = 0;
-        shinkansenPos = -30;
-        document.getElementById('shinkansen').style.left = shinkansenPos + 'px';
-        document.getElementById('timer-display').innerText = "00:00";
+        function getTodayString() {
+            const t = new Date();
+            return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+        }
+
+        function getFixedStamp(dateStr) {
+            const date = new Date(dateStr);
+            const seed = date.getFullYear() + date.getMonth() + date.getDate();
+            return rewardList[seed % rewardList.length];
+        }
+
+        const unifiedButton = document.getElementById('unified-button');
+        const labelText = document.getElementById('label-text');
+        const rewardDisplay = document.getElementById('reward-display');
+        const timerDisplay = document.getElementById('timer-display');
+        const shinkansen = document.getElementById('shinkansen');
+        const mainMessage = document.getElementById('main-message');
+        const btnReset = document.getElementById('btn-reset');
         
-        let stamp2 = document.getElementById('stamp-area-2');
-        stamp2.classList.add('disabled');
-        stamp2.innerHTML = "ちょっと<br>まってね";
+        // サウンド要素の取得
+        const soundStart = document.getElementById('sound-start');
+        const soundGoal = document.getElementById('sound-goal');
 
-        clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            seconds++;
-            // 時間の表示更新
-            let m = Math.floor(seconds / 60).toString().padStart(2, '0');
-            let s = (seconds % 60).toString().padStart(2, '0');
-            document.getElementById('timer-display').innerText = `${m}:${s}`;
-            
-            // 新幹線を進める
-            shinkansenPos += 2;
-            if(shinkansenPos > 300) shinkansenPos = -30; // 画面端まで行ったら戻るループ
-            document.getElementById('shinkansen').style.left = shinkansenPos + 'px';
+        let startTime, timerInterval, unlockTimeout, currentState = 'idle';
 
-            // デモ用：3秒経過で2回目のスタンプを有効化（本来は60秒）
-            if(seconds === 3) {
-                stamp2.classList.remove('disabled');
-                stamp2.innerHTML = "おわったら<br>スタンプを<br>おしてね！";
+        // サウンド再生関数
+        function playStartSound() { soundStart.currentTime = 0; soundStart.play().catch(e=>{}); }
+        function playGoalSound() { soundGoal.currentTime = 0; soundGoal.play().catch(e=>{}); }
+
+        unifiedButton.addEventListener('click', () => {
+            if (currentState === 'idle') {
+                currentState = 'waiting';
+                startTime = Date.now();
+                shinkansen.style.animationPlayState = 'running';
+                mainMessage.innerText = 'しゅっぱつしんこう！';
+                
+                playStartSound(); // スタート音
+
+                unifiedButton.className = 'stamp-area state-waiting';
+                labelText.innerText = 'まってね';
+                db.daily_records.put({ date: getTodayString(), startTime: startTime, status: "in_progress" });
+                timerInterval = setInterval(() => {
+                    const sec = Math.floor((Date.now() - startTime) / 1000);
+                    timerDisplay.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+                }, 1000);
+                unlockTimeout = setTimeout(() => {
+                    currentState = 'active';
+                    unifiedButton.className = 'stamp-area state-active';
+                    labelText.innerText = 'ゴール！';
+                }, 3000); 
+            } else if (currentState === 'active') {
+                currentState = 'finished';
+                shinkansen.style.animationPlayState = 'paused';
+                clearInterval(timerInterval);
+                
+                playGoalSound(); // ゴール音
+
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                const fixedStamp = getFixedStamp(getTodayString());
+                rewardDisplay.innerText = fixedStamp;
+                labelText.classList.add('hidden');
+                rewardDisplay.classList.remove('hidden');
+                unifiedButton.className = 'stamp-area state-finished';
+                const sec = Math.floor((Date.now() - startTime) / 1000);
+                mainMessage.innerText = `やったね！ ${Math.floor(sec/60)}分 ${sec%60}秒！`;
+                btnReset.classList.remove('hidden');
+                db.daily_records.update(getTodayString(), {
+                    endTime: Date.now(), durationMinutes: Math.floor(sec/60), status: "completed", earnedStamp: fixedStamp
+                });
             }
-        }, 1000);
-    }
+        });
 
-    // 2回目のスタンプを押した時
-    function finishLearning() {
-        if(document.getElementById('stamp-area-2').classList.contains('disabled')) return;
-        
-        clearInterval(timerInterval);
-        let m = Math.floor(seconds / 60);
-        let s = seconds % 60;
-        document.getElementById('result-time').innerText = `${m}ふん ${s}びょうで できたね！`;
-        showScreen('screen-result');
-    }
+        btnReset.addEventListener('click', () => {
+            currentState = 'idle'; timerDisplay.textContent = '00:00'; mainMessage.innerText = 'きょうのプリントをはじめよう！';
+            btnReset.classList.add('hidden'); unifiedButton.className = 'stamp-area state-idle';
+            labelText.classList.remove('hidden'); labelText.innerText = 'スタート'; rewardDisplay.classList.add('hidden');
+            shinkansen.style.animation = 'none'; shinkansen.offsetHeight; shinkansen.style.animation = null; shinkansen.style.animationPlayState = 'paused';
+        });
 
-    // カレンダーの右下歯車ボタンの3秒長押し処理
-    function startPress() {
-        pressTimer = setTimeout(() => {
-            alert("保護者用設定画面へ移動します（3秒長押し成功！）");
-        }, 3000);
-    }
-    function cancelPress() {
-        clearTimeout(pressTimer);
-    }
-</script>
+        document.getElementById('btn-to-calendar').addEventListener('click', () => { 
+            document.getElementById('screen-main').classList.add('hidden');
+            document.getElementById('screen-calendar').classList.remove('hidden');
+            generateCalendar(); 
+        });
+        document.getElementById('btn-back-home').addEventListener('click', () => { 
+            document.getElementById('screen-calendar').classList.add('hidden');
+            document.getElementById('screen-main').classList.remove('hidden');
+        });
 
+        async function generateCalendar() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            document.getElementById('calendar-header').textContent = `${year}年 ${month + 1}月`;
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const records = await db.daily_records.toArray();
+            let html = '';
+            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+            dayNames.forEach((d, i) => {
+                let cls = i === 0 ? 'sun' : (i === 6 ? 'sat' : '');
+                html += `<div class="cal-cell cal-header-cell ${cls}">${d}</div>`;
+            });
+            for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell" style="border:none;"></div>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateObj = new Date(year, month, day);
+                const dayOfWeek = dateObj.getDay();
+                const dateKey = `${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isHoliday = holidays2026[dateKey];
+                let cellCls = '';
+                if (dayOfWeek === 0 || isHoliday) cellCls = 'sun';
+                else if (dayOfWeek === 6) cellCls = 'sat';
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const record = records.find(r => r.date === dateStr && r.status === "completed");
+                const stamp = record ? `<div class="stamp-mark">${getFixedStamp(dateStr)}</div>` : '';
+                const holidayLabel = isHoliday ? `<div class="holiday-name">${isHoliday}</div>` : '';
+                html += `<div class="cal-cell ${cellCls}">
+                            <div class="day-number">${day}</div>
+                            ${holidayLabel}
+                            ${stamp}
+                         </div>`;
+            }
+            document.getElementById('calendar-grid').innerHTML = html;
+        }
+    </script>
 </body>
 </html>
