@@ -84,7 +84,26 @@
             100% { left: 100%; } 
         }
 
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin: 5px 0; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin: 10px auto; max-width: 700px;}
+
+        .cal-cell { 
+            width: 98%; 
+            aspect-ratio: 1 / 0.7; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            border: 1px solid #eee; 
+            border-radius: 4px; 
+            background-color: #fff; 
+            font-size: 0.7rem; 
+            padding: 1px; 
+            box-sizing: border-box;
+            position: relative;
+    
+    /* 【追加】このマスの横幅を基準に子要素のサイズを決められるようにする */
+            container-type: inline-size; 
+        }
+/*
         .cal-cell { 
             width: 98%; 
             aspect-ratio: 1 / 0.7; 
@@ -92,17 +111,33 @@
             border: 1px solid #eee; border-radius: 4px; background-color: #fff; 
             font-size: 0.7rem; padding: 1px; box-sizing: border-box;
             position: relative;
-        }
+        }*/
         .cal-header-cell { border: none; font-weight: bold; height: auto; aspect-ratio: auto; padding: 5px 0; }
         .sun, .holiday { color: #ff4d4d !important; background-color: #fff0f0; }
         .sat { color: #3498db !important; background-color: #f0faff; }
         
+        /* 2. スタンプのサイズを「マスの横幅の◯%」という指定に変える */
+        .stamp-mark { 
+            /* 【変更】2.8rem から 変更 */
+            /* 60cqw = マスの横幅の60% という意味です */
+            font-size: 40cqw; 
+    
+            line-height: 1;
+            margin-top: 4px; 
+            z-index: 1;
+    
+            /* 中央に配置しやすくするための調整 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+/*
         .stamp-mark { 
             font-size: 2.8rem; 
             line-height: 1;
             margin-top: 3px; 
             z-index: 1;
-        }
+        }*/
         .holiday-name { font-size: 0.4rem; transform: scale(0.8); white-space: nowrap; margin-bottom: -2px; }
         .day-number { position: relative; z-index: 2; font-weight: bold; }
     </style>
