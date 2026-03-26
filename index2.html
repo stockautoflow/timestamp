@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>タイムスタンプ・キッズ</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+</head>
+<body>
+
+    <div id="screen-home" class="screen">
+        <h1>タイムスタンプ・キッズ</h1>
+        <p>きょうのプリントをはじめよう！</p>
+        <div id="stamp-start" class="stamp-area">
+            ここにスタンプ(スタート)
+        </div>
+    </div>
+
+    <div id="screen-timer" class="screen hidden">
+        <h2>がんばれ！</h2>
+        <div id="timer-display">00:00</div>
+        <div id="stamp-goal" class="stamp-area disabled">
+            ここにスタンプ(ゴール)
+        </div>
+    </div>
+
+    <div id="screen-result" class="screen hidden">
+        <h2>できたね！</h2>
+        <div id="result-time">--ふん--びょう</div>
+        <button id="btn-return">ホームへもどる</button>
+    </div>
+
+    <script src="app.js"></script>
+
+</body>
+</html>
