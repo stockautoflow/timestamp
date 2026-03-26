@@ -54,9 +54,12 @@
             box-shadow: 0 4px #2e7d32; margin: 5px;
         }
         .btn-reset { background-color: #ff8c00; box-shadow: 0 4px #e67e22; }
+        /* バックアップボタン用 */
+        .btn-backup { background-color: #3498db; box-shadow: 0 4px #2980b9; }
 
         #timer-display { font-size: 2.8rem; font-weight: bold; color: #333; margin: 5px 0; font-family: monospace; }
 
+        /* --- 新幹線エリア：元の設定(350px)に戻しました --- */
         .shinkansen-area { 
             width: 100%; max-width: 350px; 
             height: 55px; 
@@ -69,7 +72,7 @@
             bottom: 10px; 
         }
         .shinkansen { 
-            width: 600px; /* 画像は倍サイズ */
+            width: 600px; 
             height: auto; position: absolute; 
             bottom: 10px; 
             left: -640px; 
@@ -95,7 +98,7 @@
         .sat { color: #3498db !important; background-color: #f0faff; }
         
         .stamp-mark { 
-            font-size: 2.8rem; /* カレンダーのスタンプ倍増 */
+            font-size: 2.8rem; 
             line-height: 1;
             margin-top: 3px; 
             z-index: 1;
@@ -125,7 +128,10 @@
     <div id="screen-calendar" class="screen hidden">
         <h2 id="calendar-header">2026年 --月</h2>
         <div id="calendar-grid" class="calendar-grid"></div>
-        <button id="btn-back-home" class="btn">◀ もどる</button>
+        <div class="btn-box">
+            <button id="btn-back-home" class="btn">◀ もどる</button>
+            <button id="btn-backup" class="btn btn-backup">💾 バックアップ</button>
+        </div>
     </div>
 
     <audio id="sound-start" src="start.mp3" preload="auto"></audio>
@@ -171,13 +177,11 @@
         const mainMessage = document.getElementById('main-message');
         const btnReset = document.getElementById('btn-reset');
         
-        // サウンド要素の取得
         const soundStart = document.getElementById('sound-start');
         const soundGoal = document.getElementById('sound-goal');
 
         let startTime, timerInterval, unlockTimeout, currentState = 'idle';
 
-        // サウンド再生関数
         function playStartSound() { soundStart.currentTime = 0; soundStart.play().catch(e=>{}); }
         function playGoalSound() { soundGoal.currentTime = 0; soundGoal.play().catch(e=>{}); }
 
@@ -187,9 +191,7 @@
                 startTime = Date.now();
                 shinkansen.style.animationPlayState = 'running';
                 mainMessage.innerText = 'しゅっぱつしんこう！';
-                
-                playStartSound(); // スタート音
-
+                playStartSound();
                 unifiedButton.className = 'stamp-area state-waiting';
                 labelText.innerText = 'まってね';
                 db.daily_records.put({ date: getTodayString(), startTime: startTime, status: "in_progress" });
@@ -206,9 +208,7 @@
                 currentState = 'finished';
                 shinkansen.style.animationPlayState = 'paused';
                 clearInterval(timerInterval);
-                
-                playGoalSound(); // ゴール音
-
+                playGoalSound();
                 confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
                 const fixedStamp = getFixedStamp(getTodayString());
                 rewardDisplay.innerText = fixedStamp;
@@ -239,6 +239,15 @@
         document.getElementById('btn-back-home').addEventListener('click', () => { 
             document.getElementById('screen-calendar').classList.add('hidden');
             document.getElementById('screen-main').classList.remove('hidden');
+        });
+
+        // --- バックアップ機能 ---
+        document.getElementById('btn-backup').addEventListener('click', async () => {
+            const allRecords = await db.daily_records.toArray();
+            const jsonString = JSON.stringify(allRecords, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
         });
 
         async function generateCalendar() {
