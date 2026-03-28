@@ -57,14 +57,13 @@
             box-shadow: 0 4px #2e7d32; margin: 5px;
         }
         .btn-reset { background-color: #ff8c00; box-shadow: 0 4px #e67e22; }
-        /* バックアップ・復元ボタン用 */
         .btn-backup { background-color: #3498db; box-shadow: 0 4px #2980b9; }
         .btn-restore { background-color: #9b59b6; box-shadow: 0 4px #8e44ad; }
 
         #timer-display { font-size: 2.8rem; font-weight: bold; color: #333; margin: 5px 0; font-family: monospace; }
 
         .shinkansen-area { 
-            width: 100%; 
+            width: 100%; max-width: 350px; 
             height: 55px; 
             margin: 5px auto; position: relative; overflow: hidden; 
             background-color: #fff; border-radius: 10px; border: 1px solid #ddd; 
@@ -121,13 +120,32 @@
 
         .holiday-name { font-size: 0.4rem; transform: scale(0.8); white-space: nowrap; margin-bottom: -2px; }
         .day-number { position: relative; z-index: 2; font-weight: bold; }
+
+        /* --- 復元テキストエリア用のスタイル --- */
+        #restore-area {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+        }
+        #restore-text {
+            width: 90%;
+            height: 80px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 0.8rem;
+            resize: vertical;
+        }
     </style>
 </head>
 <body>
 
     <div id="screen-main" class="screen">
-        <h2 id="main-message">きょうのプリントをはじめよう！</h2>
         <div class="shinkansen-area"><div class="track"></div><img id="shinkansen" class="shinkansen" src="shinkansen.png" alt="🚅"></div>
+        <h2 id="main-message">きょうのプリントをはじめよう！</h2>
         <div id="timer-display">00:00</div>
         <div class="button-container">
             <div id="unified-button" class="stamp-area state-idle">
@@ -147,8 +165,13 @@
         <div class="btn-box">
             <button id="btn-back-home" class="btn">◀ もどる</button>
             <button id="btn-backup" class="btn btn-backup">💾 バックアップ</button>
-            <button id="btn-restore" class="btn btn-restore">📂 ふくげん</button>
-            <input type="file" id="file-restore" accept=".json" class="hidden">
+            <button id="btn-restore-toggle" class="btn btn-restore">📂 ふくげん</button>
+        </div>
+
+        <div id="restore-area" class="hidden">
+            <p style="font-size: 0.9rem; margin-top: 0;">ここにバックアップのテキストを貼り付けてね</p>
+            <textarea id="restore-text" placeholder='[{"date":"2026-04-01", ...}]'></textarea><br>
+            <button id="btn-execute-restore" class="btn btn-restore" style="margin-top: 10px;">復元を実行する</button>
         </div>
     </div>
 
@@ -259,60 +282,58 @@
             document.getElementById('screen-main').classList.remove('hidden');
         });
 
-        // --- 【改良】バックアップ機能（ファイルとしてダウンロード） ---
         document.getElementById('btn-backup').addEventListener('click', async () => {
             const allRecords = await db.daily_records.toArray();
             const jsonString = JSON.stringify(allRecords, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
-            // ファイルとしてダウンロードさせる魔法
             const a = document.createElement('a');
             a.href = url;
-            a.download = `timestamp_kids_backup_${getTodayString()}.json`; // ファイル名を自動でつける
+            a.download = `timestamp_kids_backup_${getTodayString()}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         });
 
-        // --- 【追加】復元（インポート）機能 ---
-        const btnRestore = document.getElementById('btn-restore');
-        const fileRestore = document.getElementById('file-restore');
+        // --- 【変更】テキスト貼り付けでの復元処理 ---
+        const btnRestoreToggle = document.getElementById('btn-restore-toggle');
+        const restoreArea = document.getElementById('restore-area');
+        const btnExecuteRestore = document.getElementById('btn-execute-restore');
+        const restoreText = document.getElementById('restore-text');
 
-        // ふくげんボタンを押したら、隠れたファイル選択を起動
-        btnRestore.addEventListener('click', () => {
-            fileRestore.click();
+        // ふくげんボタンで入力エリアを開閉
+        btnRestoreToggle.addEventListener('click', () => {
+            restoreArea.classList.toggle('hidden');
         });
 
-        // ファイルが選ばれたら中身を読み込んでデータベースを上書きする
-        fileRestore.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        // テキストから復元を実行
+        btnExecuteRestore.addEventListener('click', async () => {
+            const jsonString = restoreText.value.trim();
+            if (!jsonString) {
+                alert("テキストが入力されていません。");
+                return;
+            }
 
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                try {
-                    const importedData = JSON.parse(event.target.result);
-                    if (Array.isArray(importedData)) {
-                        // 念のため確認メッセージを出す
-                        if (confirm("いまの記録を消して、バックアップデータで上書きします。よろしいですか？")) {
-                            await db.daily_records.clear(); // いまのデータをまっさらにする
-                            await db.daily_records.bulkPut(importedData); // バックアップデータを流し込む
-                            alert("データを復元しました！");
-                            generateCalendar(); // カレンダーの表示を更新
-                        }
-                    } else {
-                        alert("ファイルの形式が正しくありません。");
+            try {
+                const importedData = JSON.parse(jsonString);
+                if (Array.isArray(importedData)) {
+                    if (confirm("いまの記録を消して、入力されたデータで上書きします。よろしいですか？")) {
+                        await db.daily_records.clear();
+                        await db.daily_records.bulkPut(importedData);
+                        alert("データを復元しました！");
+                        restoreText.value = ''; // 入力欄をリセット
+                        restoreArea.classList.add('hidden'); // エリアを隠す
+                        generateCalendar(); // カレンダーを更新
                     }
-                } catch (error) {
-                    alert("ファイルの読み込みに失敗しました。正しいバックアップファイルを選んでください。");
-                    console.error(error);
+                } else {
+                    alert("データの形式が正しくありません。");
                 }
-                // 次も同じファイルを選べるようにリセットしておく
-                fileRestore.value = '';
-            };
-            reader.readAsText(file);
+            } catch (error) {
+                alert("テキストの読み込みに失敗しました。正しいデータを貼り付けてください。");
+                console.error(error);
+            }
         });
 
         async function generateCalendar() {
