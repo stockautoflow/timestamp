@@ -68,77 +68,33 @@
             margin: 5px auto; position: relative; overflow: hidden; 
             background-color: #fff; border-radius: 10px; border: 1px solid #ddd; 
         }
-        .track { 
-            width: 100%; height: 4px; 
-            background-color: #8b4513; position: absolute; 
-            bottom: 10px; 
-        }
+        .track { width: 100%; height: 4px; background-color: #8b4513; position: absolute; bottom: 10px; }
         .shinkansen { 
-            width: 600px; 
-            height: auto; position: absolute; 
-            bottom: 10px; 
-            left: -640px; 
-            animation: driveForward 60s linear infinite; 
-            animation-play-state: paused; 
+            width: 600px; height: auto; position: absolute; bottom: 10px; 
+            left: -640px; animation: driveForward 60s linear infinite; animation-play-state: paused; 
         }
-        @keyframes driveForward { 
-            0% { left: -640px; } 
-            100% { left: 100%; } 
-        }
+        @keyframes driveForward { 0% { left: -640px; } 100% { left: 100%; } }
 
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin: 10px auto; max-width: 700px;}
+        .calendar-nav { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 5px; }
+        .btn-nav { background-color: #fff; border: 2px solid #ff8c00; color: #ff8c00; border-radius: 50%; width: 35px; height: 35px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
 
-        .cal-cell { 
-            width: 98%; 
-            aspect-ratio: 1 / 0.7; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            border: 1px solid #eee; 
-            border-radius: 4px; 
-            background-color: #fff; 
-            font-size: 0.7rem; 
-            padding: 1px; 
-            box-sizing: border-box;
-            position: relative;
-            container-type: inline-size; 
-        }
-
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin: 0 auto 10px; max-width: 700px;}
+        .cal-cell { width: 98%; aspect-ratio: 1 / 0.7; display: flex; flex-direction: column; align-items: center; border: 1px solid #eee; border-radius: 4px; background-color: #fff; font-size: 0.7rem; padding: 1px; box-sizing: border-box; position: relative; container-type: inline-size; }
         .cal-header-cell { border: none; font-weight: bold; height: auto; aspect-ratio: auto; padding: 5px 0; }
         .sun, .holiday { color: #ff4d4d !important; background-color: #fff0f0; }
         .sat { color: #3498db !important; background-color: #f0faff; }
         
         .stamp-mark { 
+            font-size: 2.8rem; 
             font-size: 40cqw; 
-            line-height: 1;
-            margin-top: 4px; 
-            z-index: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            line-height: 1; margin-top: 4px; z-index: 1; display: flex; justify-content: center; align-items: center; 
         }
-
+        
         .holiday-name { font-size: 0.4rem; transform: scale(0.8); white-space: nowrap; margin-bottom: -2px; }
         .day-number { position: relative; z-index: 2; font-weight: bold; }
 
-        /* --- 復元テキストエリア用のスタイル --- */
-        #restore-area {
-            margin-top: 15px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border: 2px dashed #ccc;
-            border-radius: 10px;
-        }
-        #restore-text {
-            width: 90%;
-            height: 80px;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            font-family: monospace;
-            font-size: 0.8rem;
-            resize: vertical;
-        }
+        #restore-area { margin-top: 15px; padding: 15px; background-color: #f9f9f9; border: 2px dashed #ccc; border-radius: 10px; }
+        #restore-text { width: 90%; height: 80px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; font-family: monospace; font-size: 0.8rem; resize: vertical; }
     </style>
 </head>
 <body>
@@ -160,18 +116,21 @@
     </div>
 
     <div id="screen-calendar" class="screen hidden">
-        <h2 id="calendar-header">2026年 --月</h2>
+        <div class="calendar-nav">
+            <button id="btn-prev-month" class="btn-nav">◀</button>
+            <h2 id="calendar-header" style="margin:0; width: 150px;">2026年 --月</h2>
+            <button id="btn-next-month" class="btn-nav">▶</button>
+        </div>
         <div id="calendar-grid" class="calendar-grid"></div>
         <div class="btn-box">
             <button id="btn-back-home" class="btn">◀ もどる</button>
-            <button id="btn-backup" class="btn btn-backup">💾 バックアップ</button>
+            <button id="btn-backup" class="btn btn-backup">💾 手動バックアップ</button>
             <button id="btn-restore-toggle" class="btn btn-restore">📂 ふくげん</button>
         </div>
-
         <div id="restore-area" class="hidden">
-            <p style="font-size: 0.9rem; margin-top: 0;">ここにバックアップのテキストを貼り付けてね</p>
-            <textarea id="restore-text" placeholder='[{"date":"2026-04-01", ...}]'></textarea><br>
-            <button id="btn-execute-restore" class="btn btn-restore" style="margin-top: 10px;">復元を実行する</button>
+            <p style="font-size: 0.9rem; margin-top: 0;">バックアップテキストを貼り付けてね</p>
+            <textarea id="restore-text"></textarea><br>
+            <button id="btn-execute-restore" class="btn btn-restore" style="margin-top: 10px;">復元を実行</button>
         </div>
     </div>
 
@@ -182,22 +141,23 @@
         const db = new Dexie("TimestampKidsDB");
         db.version(1).stores({ daily_records: "date, startTime, endTime, durationMinutes, status, earnedStamp" });
 
-        const rewardList = [
-            "🏎️", "✈️", "🚀", "🚒", "🚑", "🚓", "🚜", "🚁", "🚢", "🛰️", "🛸",
-            "🦁", "🐘", "🦒", "🐼", "🐧", "🐨", "🦖", "🦄", "🐵", "🐯", "🐰",
-            "🐬", "🐳", "🐙", "🦀", "🐢", "🐠", "🦑", "🦈",
-            "🍦", "🍰", "🍎", "🍓", "🍔", "🍭", "🍩", "🍕",
-            "🌈", "☀️", "🌙", "🌟", "🍀", "🌸", "❄️", "🌵", "🌋",
-            "⚽", "⚾", "🎾", "🏹", "🎨", "🪁", "🎹", "🎸", "🎺", "🥁", "🔔", "🎶"
-        ];
+        // 【重要】ここにGASのウェブアプリURLを貼り付けてください
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbw6e1MWyj66e9irFRh37lKYEuwobCS1v_YrX9YUdWvvAXgSHoZFOElx7r1yNmOSeoo/exec";
 
-        const holidays2026 = {
-            "01-01":"元日","01-12":"成人の日","02-11":"建国記念","02-23":"天皇誕生日",
-            "03-20":"春分の日","04-29":"昭和の日","05-03":"憲法記念日","05-04":"みどりの日",
-            "05-05":"こどもの日","05-06":"振替休日","07-20":"海の日","08-11":"山の日",
-            "09-21":"敬老の日","09-22":"秋分の日","10-12":"スポーツの日","11-03":"文化の日",
-            "11-23":"勤労感謝","11-24":"振替休日"
+        // --- 曜日別・大容量スタンプリスト ---
+        const rewardsByDay = {
+            1: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🦟","🦗","🕷️","🕸️","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐊","🐅","🐆","🦓","🦍","🦧","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🐐","🦌","🐕","🐩","🦮","🐕‍🦺","🐈","🐈‍⬛","🐓","🦃","🦚","🦜","🦢","🦩","🕊️","🐇","🦝","🦨","🦡","🦦","🦥","🐁","🐀","🐿️","🦔","🐾","🐉","🐲","🐚","🐌","🐜","🐝","🐞","🦋","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐙","🦑","🦀","🦞","🦐","🐢","🐍","🦎","🦖","🦕"],
+            2: ["🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐","🛻","🚚","🚛","🚜","🛵","🚲","🛴","🛺","🚉","🚆","🚄","🚅","🚈","🚂","🚋","🚃","🚞","💨","🛶","⛵","🚤","🛳️","⛴️","🚢","✈️","🛩️","🛫","🛬","🪂","💺","🚁","🚟","🚠","🚡","🚀","🛸","⛽","🏁","🚢","🏎️","🚲","🏍️","🚄","🚅","✈️","🚠","🛥️","🛳️","🚒","🚑","🚓","🚜","🚛","🚲","🚃","🚞","🚀","🛸","🚢","🚅"],
+            3: ["🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌽","🥕","🥔","🍠","🥐","🍞","🥜","🌰","🍄","🌲","🌳","🌴","🌵","🌾","🌿","☘️","🍀","🍁","🍂","🍃","🌸","💮","🏵️","🌹","🥀","🌺","🌻","🌼","🌷","🌱","🌲","🍇","🍓"],
+            4: ["🎹","🎸","🎻","🎺","🎷","🥁","🎼","🎵","🎶","🎙️","📻","🎧","🪕","🪗","🎸","🎹","🎺","🎻","🥁","🪘","🔔","📯","🪕","🎷","🎙️","📻","🎧","🎵","🎶","🎼"],
+            5: ["🍞","🥐","🥖","🥨","🥯","🥞","🍳","🥚","🧀"," bacon","🥩","🍗","🍖","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🥗","🥘","🍲","🍜","🍝","🍜","🍛","🍣","🍱","🥟","🍢","🍙","🍚","🍘","🍥","🍮","🍦","🍧","🍨","🍩","🍪","🎂","🍰","🧁","🥧","🍫","🍬","🍭","🍮","🍯","☕","🍵","🍶","🍷","🍸","🍹","🍺","🍻","🥂","🥃","🥤","🥘","🍲","🍳","🥣","🥡","🥩","🍗","🧀","🥓","🍜","🍝","🍦","🍩","🧁","🍔","🍣","🍢","🍮","🍯","🧁","🍙","🍛","🍲","🍳","🍕","🥨","🥟","🍡","🥐","🍷","🍺","🍰","🍨","🍗","🥘","🥣","🥯","🌽","🥦","🥐","🥨","🍳","🥚","🥟","🍢","🍧","🍰","🍩","🍯","🥞","🍳","🥗","🍲","🌮","🍗","🍛","🌭","🧀","🍰"],
+            6: ["✈️","🚢","🚠","🚇","🗼","⛩️","🎢🎡🎠","🏖️","🏝️","🌋","⛰️","🏕️","🏔️","🏜️","🏟️","🏯","🛖","🏢","🏨","🏫","🏪","🏤","🏛️","⛪","🕌","🛕","🛤️","🗺️","🗾","🇯🇵","🇦🇫","🇦🇽","🇦🇱","🇩🇿","🇦🇸","🇦🇩","🇦🇴","🇦🇮","🇦🇶","🇦🇬","🇦🇷","🇦🇲","🇦🇼","🇦🇺","🇦🇹","🇦🇿","🇧🇸","🇧🇭","🇧🇩","🇧🇧","🇧🇾","🇧🇪","🇧🇿","🇧🇯","🇧🇲","🇧🇹","🇧🇴","🇧🇦","🇧🇼","🇧🇷","🇻🇬","🇧🇳","🇧🇬","🇧🇫","🇧🇮","🇰🇭","🇨🇲","🇨🇦","🇮🇨","🇨🇻","🇧🇶","🇰🇾","🇨🇫","🇹🇩","🇨🇱","🇨🇳","🇨🇽","🇨🇨","🇨🇴","🇰🇲","🇨🇬","🇨🇩","🇨🇰","🇨🇷","🇨🇮","🇭🇷","🇨🇺","🇨🇼","🇨🇾","🇨🇿","🇩🇰","🇩🇯","🇩🇲","🇩🇴","🇪🇨","🇪🇬","🇸🇻","🇬🇶","🇪🇷","🇪🇪","🇪🇹","🇪🇺","🇫🇰","🇫🇴","🇫🇯","🇫🇮","🇫🇷","🇬🇫","🇵🇫","🇹🇫","🇬🇦","🇬🇲","🇬🇪","🇩🇪","🇬🇭","🇬🇮","🇬🇷","🇬🇱","🇬🇩","🇬🇵","🇬🇺","🇬🇹","🇬🇬","🇬🇳","🇬🇼","🇬🇾","🇭🇹","🇭🇳","🇭🇰","🇭🇺","🇮🇸","🇮🇳","🇮🇩","🇮🇷","🇮🇶","🇮🇪","🇮🇲","🇮🇱","🇮🇹","🇯🇲","🇯🇵","🇯🇪","🇯🇴","🇰🇿","🇰🇪","🇰🇮","🇽🇰","🇰🇼","🇰🇬","🇱🇦","🇱🇻","🇱🇧","🇱🇸","🇱🇷","🇱🇾","🇱🇮","🇱🇹","🇱🇺","🇲🇴","🇲🇰","🇲🇬","🇲🇼","🇲🇾","🇲🇻","🇲🇱","🇲🇹","🇲🇭","🇲🇶","🇲🇷","🇲🇺","🇾🇹","🇲🇽","🇫🇲","🇲🇩","🇲🇨","🇲🇳","🇲🇪","🇲🇸","🇲🇦","🇲🇿","🇲🇲","🇳🇦","🇳🇷","🇳🇵","🇳🇱","🇳🇨","🇳🇿","🇳🇮","🇳🇪","🇳🇬","🇳🇺","🇳🇫","🇰🇵","🇲🇵","🇳🇴","🇴🇲","🇵🇰","🇵🇼","🇵🇸","🇵🇦","🇵🇬","🇵🇾","🇵🇪","🇵🇭","🇵🇳","🇵🇱","🇵🇹","🇵🇷","🇶🇦","🇷🇪","🇷🇴","🇷🇺","🇷🇼","🇼🇸","🇸🇲","🇸🇹","🇸🇦","🇸🇳","🇷🇸","🇸🇨","🇸🇱","🇸🇬","🇸🇽","🇸🇰","🇸🇮","🇬🇸","🇸🇧","🇸🇴","🇿🇦","🇰🇷","🇸🇸","🇪🇸","🇱🇰","🇧🇱","🇸🇭","🇰🇳","🇱🇨","🇵🇲","🇻🇨","🇸🇩","🇸🇷","🇸🇿","🇸🇪","🇨🇭","🇸🇾","🇹🇼","🇹🇯","🇹🇿","🇹🇭","🇹🇱","🇹🇬","🇹🇰","🇹🇴","🇹🇹","🇹🇳","🇹🇷","🇹🇲","🇹🇨","🇹🇻","🇻🇮","🇺🇬","🇺🇦","🇦🇪","🇬🇧","🏴󠁧󠁢󠁥󠁮󠁧󠁿","🏴󠁧󠁢󠁳󠁣󠁴󠁿","🏴󠁧󠁢󠁷󠁬󠁳󠁿","🇺🇸","🇺🇾","🇺🇿","🇻🇺","🇻🇦","🇻🇪","🇻🇳","🇼🇫","🇪🇭","🇾🇪","🇿🇲","🇿🇼"],
+            0: ["⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🎱","🏓","🏸","🏒","🏑","🥍","🏏","🥅","⛳","🏹","🎣","🤿","🥊","🥋","⛸️","🎿","🛷","⛸️","🛹","⛹️","🏋️","🚴","🧗","🏇","🤺","🤽","🤾","🏄","🛶","⚽","⚾","⛳"]
         };
+
+        const holidays2026 = {"01-01":"元日","01-12":"成人の日","02-11":"建国記念","02-23":"天皇誕生日","03-20":"春分の日","04-29":"昭和の日","05-03":"憲法記念日","05-04":"みどりの日","05-05":"こどもの日","05-06":"振替休日","07-20":"海の日","08-11":"山の日","09-21":"敬老の日","09-22":"秋分の日","10-12":"スポーツの日","11-03":"文化の日","11-23":"勤労感謝","11-24":"振替休日"};
+
+        let currentViewYear, currentViewMonth;
 
         function getTodayString() {
             const t = new Date();
@@ -205,9 +165,28 @@
         }
 
         function getFixedStamp(dateStr) {
-            const date = new Date(dateStr);
-            const seed = date.getFullYear() + date.getMonth() + date.getDate();
-            return rewardList[seed % rewardList.length];
+            const parts = dateStr.split('-');
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1; 
+            const d = parseInt(parts[2], 10);
+            const date = new Date(y, m, d);
+            const dayOfWeek = date.getDay();
+            const list = rewardsByDay[dayOfWeek] || rewardsByDay[0];
+            const baseTime = Date.UTC(2026, 0, 1);
+            const targetTime = Date.UTC(y, m, d);
+            const diffTime = targetTime - baseTime;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const weekIndex = Math.floor(diffDays / 7);
+            const finalIndex = Math.abs(weekIndex) % list.length;
+            return list[finalIndex];
+        }
+
+        async function executeCloudBackup() {
+            if (!GAS_URL || GAS_URL.includes("ここに")) return;
+            try {
+                const allRecords = await db.daily_records.toArray();
+                fetch(GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(allRecords), headers: { "Content-Type": "text/plain" } });
+            } catch (err) { console.error("Backup failed", err); }
         }
 
         const unifiedButton = document.getElementById('unified-button');
@@ -217,7 +196,6 @@
         const shinkansen = document.getElementById('shinkansen');
         const mainMessage = document.getElementById('main-message');
         const btnReset = document.getElementById('btn-reset');
-        
         const soundStart = document.getElementById('sound-start');
         const soundGoal = document.getElementById('sound-goal');
 
@@ -226,7 +204,7 @@
         function playStartSound() { soundStart.currentTime = 0; soundStart.play().catch(e=>{}); }
         function playGoalSound() { soundGoal.currentTime = 0; soundGoal.play().catch(e=>{}); }
 
-        unifiedButton.addEventListener('click', () => {
+        unifiedButton.addEventListener('click', async () => {
             if (currentState === 'idle') {
                 currentState = 'waiting';
                 startTime = Date.now();
@@ -235,7 +213,7 @@
                 playStartSound();
                 unifiedButton.className = 'stamp-area state-waiting';
                 labelText.innerText = 'まってね';
-                db.daily_records.put({ date: getTodayString(), startTime: startTime, status: "in_progress" });
+                await db.daily_records.put({ date: getTodayString(), startTime: startTime, status: "in_progress" });
                 timerInterval = setInterval(() => {
                     const sec = Math.floor((Date.now() - startTime) / 1000);
                     timerDisplay.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -251,18 +229,27 @@
                 clearInterval(timerInterval);
                 playGoalSound();
                 confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                
                 const fixedStamp = getFixedStamp(getTodayString());
                 rewardDisplay.innerText = fixedStamp;
                 labelText.classList.add('hidden');
                 rewardDisplay.classList.remove('hidden');
                 unifiedButton.className = 'stamp-area state-finished';
+                
                 const sec = Math.floor((Date.now() - startTime) / 1000);
                 mainMessage.innerText = `やったね！ ${Math.floor(sec/60)}分 ${sec%60}秒！`;
                 btnReset.classList.remove('hidden');
-                db.daily_records.update(getTodayString(), {
-                    endTime: Date.now(), durationMinutes: Math.floor(sec/60), status: "completed", earnedStamp: fixedStamp
-                });
+                
+                await db.daily_records.update(getTodayString(), { endTime: Date.now(), durationMinutes: Math.floor(sec/60), status: "completed", earnedStamp: fixedStamp });
+                executeCloudBackup();
             }
+        });
+
+        document.getElementById('btn-backup').addEventListener('click', async () => {
+            const allRecords = await db.daily_records.toArray();
+            const blob = new Blob([JSON.stringify(allRecords, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'timestamp_kids_backup.json'; a.click(); URL.revokeObjectURL(url);
         });
 
         btnReset.addEventListener('click', () => {
@@ -273,6 +260,7 @@
         });
 
         document.getElementById('btn-to-calendar').addEventListener('click', () => { 
+            const now = new Date(); currentViewYear = now.getFullYear(); currentViewMonth = now.getMonth();
             document.getElementById('screen-main').classList.add('hidden');
             document.getElementById('screen-calendar').classList.remove('hidden');
             generateCalendar(); 
@@ -282,67 +270,38 @@
             document.getElementById('screen-main').classList.remove('hidden');
         });
 
-        document.getElementById('btn-backup').addEventListener('click', async () => {
-            const allRecords = await db.daily_records.toArray();
-            const jsonString = JSON.stringify(allRecords, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `timestamp_kids_backup_${getTodayString()}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        document.getElementById('btn-prev-month').addEventListener('click', () => {
+            currentViewMonth--; if (currentViewMonth < 0) { currentViewMonth = 11; currentViewYear--; }
+            generateCalendar();
+        });
+        document.getElementById('btn-next-month').addEventListener('click', () => {
+            currentViewMonth++; if (currentViewMonth > 11) { currentViewMonth = 0; currentViewYear++; }
+            generateCalendar();
         });
 
-        // --- 【変更】テキスト貼り付けでの復元処理 ---
         const btnRestoreToggle = document.getElementById('btn-restore-toggle');
         const restoreArea = document.getElementById('restore-area');
         const btnExecuteRestore = document.getElementById('btn-execute-restore');
         const restoreText = document.getElementById('restore-text');
-
-        // ふくげんボタンで入力エリアを開閉
-        btnRestoreToggle.addEventListener('click', () => {
-            restoreArea.classList.toggle('hidden');
-        });
-
-        // テキストから復元を実行
+        btnRestoreToggle.addEventListener('click', () => { restoreArea.classList.toggle('hidden'); });
         btnExecuteRestore.addEventListener('click', async () => {
             const jsonString = restoreText.value.trim();
-            if (!jsonString) {
-                alert("テキストが入力されていません。");
-                return;
-            }
-
+            if (!jsonString) return alert("テキストを入力してね");
             try {
-                const importedData = JSON.parse(jsonString);
-                if (Array.isArray(importedData)) {
-                    if (confirm("いまの記録を消して、入力されたデータで上書きします。よろしいですか？")) {
-                        await db.daily_records.clear();
-                        await db.daily_records.bulkPut(importedData);
-                        alert("データを復元しました！");
-                        restoreText.value = ''; // 入力欄をリセット
-                        restoreArea.classList.add('hidden'); // エリアを隠す
-                        generateCalendar(); // カレンダーを更新
+                const data = JSON.parse(jsonString);
+                if (Array.isArray(data)) {
+                    if (confirm("いまの記録を消して復元します。いいですか？")) {
+                        await db.daily_records.clear(); await db.daily_records.bulkPut(data);
+                        alert("復元したよ！"); restoreText.value = ''; restoreArea.classList.add('hidden'); generateCalendar();
                     }
-                } else {
-                    alert("データの形式が正しくありません。");
                 }
-            } catch (error) {
-                alert("テキストの読み込みに失敗しました。正しいデータを貼り付けてください。");
-                console.error(error);
-            }
+            } catch (e) { alert("データの形式がちがうみたい…"); }
         });
 
         async function generateCalendar() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth();
-            document.getElementById('calendar-header').textContent = `${year}年 ${month + 1}月`;
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            document.getElementById('calendar-header').textContent = `${currentViewYear}年 ${currentViewMonth + 1}月`;
+            const firstDay = new Date(currentViewYear, currentViewMonth, 1).getDay();
+            const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
             const records = await db.daily_records.toArray();
             let html = '';
             const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
@@ -352,22 +311,26 @@
             });
             for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell" style="border:none;"></div>`;
             for (let day = 1; day <= daysInMonth; day++) {
-                const dateObj = new Date(year, month, day);
+                const dateObj = new Date(currentViewYear, currentViewMonth, day);
                 const dayOfWeek = dateObj.getDay();
-                const dateKey = `${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const isHoliday = holidays2026[dateKey];
+                const mStr = String(currentViewMonth + 1).padStart(2, '0');
+                const dStr = String(day).padStart(2, '0');
+                const dateKey = `${mStr}-${dStr}`;
+                const isHoliday = currentViewYear === 2026 ? holidays2026[dateKey] : null;
                 let cellCls = '';
-                if (dayOfWeek === 0 || isHoliday) cellCls = 'sun';
-                else if (dayOfWeek === 6) cellCls = 'sat';
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                if (dayOfWeek === 0 || isHoliday) cellCls = 'sun'; else if (dayOfWeek === 6) cellCls = 'sat';
+                const dateStr = `${currentViewYear}-${mStr}-${dStr}`;
                 const record = records.find(r => r.date === dateStr && r.status === "completed");
-                const stamp = record ? `<div class="stamp-mark">${getFixedStamp(dateStr)}</div>` : '';
+                
+                // 【修正】カレンダーのスタンプは、再計算ではなくDBに保存された earnedStamp を優先して表示する
+                let stampIcon = '';
+                if (record) {
+                    stampIcon = record.earnedStamp ? record.earnedStamp : getFixedStamp(dateStr);
+                }
+                const stamp = record ? `<div class="stamp-mark">${stampIcon}</div>` : '';
+                
                 const holidayLabel = isHoliday ? `<div class="holiday-name">${isHoliday}</div>` : '';
-                html += `<div class="cal-cell ${cellCls}">
-                            <div class="day-number">${day}</div>
-                            ${holidayLabel}
-                            ${stamp}
-                         </div>`;
+                html += `<div class="cal-cell ${cellCls}"><div class="day-number">${day}</div>${holidayLabel}${stamp}</div>`;
             }
             document.getElementById('calendar-grid').innerHTML = html;
         }
