@@ -23,21 +23,24 @@
         h2 { color: #ff8c00; font-size: 1.1rem; margin: 5px 0; min-height: 1.5em; }
 
         .button-container { display: flex; justify-content: center; align-items: center; margin: 10px 0; }
+        
         .stamp-area {
-            width: 140px; height: 140px;
+            width: 280px; height: 280px;
             border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
             background-color: #fff; font-weight: bold; position: relative; 
-            transition: all 0.3s ease; cursor: pointer; font-size: 1.2rem;
+            transition: all 0.3s ease; cursor: pointer; 
+            font-size: 2.5rem;
         }
 
-        .state-idle { border: 6px dashed #ff4d4d; color: #ff4d4d; }
-        .state-waiting { border: 6px dashed #ccc; color: #ccc; background-color: #f5f5f5; cursor: not-allowed; }
-        .state-active { border: 6px dashed #2ecc71; color: #2ecc71; background-color: #fff; }
-        .state-finished { border: 6px solid #2ecc71; background-color: #f0fff0; cursor: default; }
+        .state-idle { border: 12px dashed #ff4d4d; color: #ff4d4d; }
+        .state-waiting { border: 12px dashed #ccc; color: #ccc; background-color: #f5f5f5; cursor: not-allowed; }
+        .state-active { border: 12px dashed #2ecc71; color: #2ecc71; background-color: #fff; }
+        .state-finished { border: 12px solid #2ecc71; background-color: #f0fff0; cursor: default; }
 
         .stamp-mark-on {
-            font-size: 6rem; position: absolute;
+            font-size: 12rem; 
+            position: absolute;
             animation: stampOn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
         }
 
@@ -54,12 +57,11 @@
             box-shadow: 0 4px #2e7d32; margin: 5px;
         }
         .btn-reset { background-color: #ff8c00; box-shadow: 0 4px #e67e22; }
-        /* バックアップボタン用 */
         .btn-backup { background-color: #3498db; box-shadow: 0 4px #2980b9; }
+        .btn-restore { background-color: #9b59b6; box-shadow: 0 4px #8e44ad; }
 
         #timer-display { font-size: 2.8rem; font-weight: bold; color: #333; margin: 5px 0; font-family: monospace; }
 
-        /* --- 新幹線エリア：元の設定(350px)に戻しました --- */
         .shinkansen-area { 
             width: 100%; max-width: 350px; 
             height: 55px; 
@@ -99,8 +101,6 @@
             padding: 1px; 
             box-sizing: border-box;
             position: relative;
-    
-    /* 【追加】このマスの横幅を基準に子要素のサイズを決められるようにする */
             container-type: inline-size; 
         }
 
@@ -108,17 +108,11 @@
         .sun, .holiday { color: #ff4d4d !important; background-color: #fff0f0; }
         .sat { color: #3498db !important; background-color: #f0faff; }
         
-        /* 2. スタンプのサイズを「マスの横幅の◯%」という指定に変える */
         .stamp-mark { 
-            /* 【変更】2.8rem から 変更 */
-            /* 60cqw = マスの横幅の60% という意味です */
             font-size: 40cqw; 
-    
             line-height: 1;
             margin-top: 4px; 
             z-index: 1;
-    
-            /* 中央に配置しやすくするための調整 */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -126,13 +120,32 @@
 
         .holiday-name { font-size: 0.4rem; transform: scale(0.8); white-space: nowrap; margin-bottom: -2px; }
         .day-number { position: relative; z-index: 2; font-weight: bold; }
+
+        /* --- 復元テキストエリア用のスタイル --- */
+        #restore-area {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+        }
+        #restore-text {
+            width: 90%;
+            height: 80px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 0.8rem;
+            resize: vertical;
+        }
     </style>
 </head>
 <body>
 
     <div id="screen-main" class="screen">
-        <h2 id="main-message">きょうのプリントをはじめよう！</h2>
         <div class="shinkansen-area"><div class="track"></div><img id="shinkansen" class="shinkansen" src="shinkansen.png" alt="🚅"></div>
+        <h2 id="main-message">きょうのプリントをはじめよう！</h2>
         <div id="timer-display">00:00</div>
         <div class="button-container">
             <div id="unified-button" class="stamp-area state-idle">
@@ -152,6 +165,13 @@
         <div class="btn-box">
             <button id="btn-back-home" class="btn">◀ もどる</button>
             <button id="btn-backup" class="btn btn-backup">💾 バックアップ</button>
+            <button id="btn-restore-toggle" class="btn btn-restore">📂 ふくげん</button>
+        </div>
+
+        <div id="restore-area" class="hidden">
+            <p style="font-size: 0.9rem; margin-top: 0;">ここにバックアップのテキストを貼り付けてね</p>
+            <textarea id="restore-text" placeholder='[{"date":"2026-04-01", ...}]'></textarea><br>
+            <button id="btn-execute-restore" class="btn btn-restore" style="margin-top: 10px;">復元を実行する</button>
         </div>
     </div>
 
@@ -262,13 +282,58 @@
             document.getElementById('screen-main').classList.remove('hidden');
         });
 
-        // --- バックアップ機能 ---
         document.getElementById('btn-backup').addEventListener('click', async () => {
             const allRecords = await db.daily_records.toArray();
             const jsonString = JSON.stringify(allRecords, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `timestamp_kids_backup_${getTodayString()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // --- 【変更】テキスト貼り付けでの復元処理 ---
+        const btnRestoreToggle = document.getElementById('btn-restore-toggle');
+        const restoreArea = document.getElementById('restore-area');
+        const btnExecuteRestore = document.getElementById('btn-execute-restore');
+        const restoreText = document.getElementById('restore-text');
+
+        // ふくげんボタンで入力エリアを開閉
+        btnRestoreToggle.addEventListener('click', () => {
+            restoreArea.classList.toggle('hidden');
+        });
+
+        // テキストから復元を実行
+        btnExecuteRestore.addEventListener('click', async () => {
+            const jsonString = restoreText.value.trim();
+            if (!jsonString) {
+                alert("テキストが入力されていません。");
+                return;
+            }
+
+            try {
+                const importedData = JSON.parse(jsonString);
+                if (Array.isArray(importedData)) {
+                    if (confirm("いまの記録を消して、入力されたデータで上書きします。よろしいですか？")) {
+                        await db.daily_records.clear();
+                        await db.daily_records.bulkPut(importedData);
+                        alert("データを復元しました！");
+                        restoreText.value = ''; // 入力欄をリセット
+                        restoreArea.classList.add('hidden'); // エリアを隠す
+                        generateCalendar(); // カレンダーを更新
+                    }
+                } else {
+                    alert("データの形式が正しくありません。");
+                }
+            } catch (error) {
+                alert("テキストの読み込みに失敗しました。正しいデータを貼り付けてください。");
+                console.error(error);
+            }
         });
 
         async function generateCalendar() {
