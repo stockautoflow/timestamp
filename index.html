@@ -9,90 +9,118 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
+        :root {
+            --primary-color: #ff8c00;
+            --success-color: #2ecc71;
+            --bg-color: #f0f8ff;
+        }
+
         body {
             font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
             text-align: center;
-            background-color: #f0f8ff;
-            margin: 0;
-            padding: 10px;
-            user-select: none;
-            -webkit-user-select: none;
-            overflow: hidden; 
+            background-color: var(--bg-color);
+            margin: 0; padding: 10px;
+            user-select: none; -webkit-user-select: none;
+            overflow-x: hidden; 
         }
 
-        h2 { color: #ff8c00; font-size: 1.1rem; margin: 5px 0; min-height: 1.5em; }
+        h2 { color: var(--primary-color); font-size: 1.1rem; margin: 5px 0; min-height: 1.5em; }
+
+        .screen { width: 100%; }
+        .hidden { display: none !important; }
 
         .button-container { display: flex; justify-content: center; align-items: center; margin: 10px 0; }
-        
         .stamp-area {
-            width: 280px; height: 280px;
-            border-radius: 50%;
+            width: 280px; height: 280px; border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
             background-color: #fff; font-weight: bold; position: relative; 
-            transition: all 0.3s ease; cursor: pointer; 
-            font-size: 2.5rem;
+            transition: all 0.3s ease; cursor: pointer; font-size: 2.5rem;
         }
 
         .state-idle { border: 12px dashed #ff4d4d; color: #ff4d4d; }
         .state-waiting { border: 12px dashed #ccc; color: #ccc; background-color: #f5f5f5; cursor: not-allowed; }
-        .state-active { border: 12px dashed #2ecc71; color: #2ecc71; background-color: #fff; }
-        .state-finished { border: 12px solid #2ecc71; background-color: #f0fff0; cursor: default; }
+        .state-active { border: 12px dashed var(--success-color); color: var(--success-color); background-color: #fff; }
+        .state-finished { border: 12px solid var(--success-color); background-color: #f0fff0; cursor: default; }
 
-        .stamp-mark-on {
-            font-size: 12rem; 
-            position: absolute;
-            animation: stampOn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-        }
-
-        @keyframes stampOn {
-            0% { transform: scale(0) rotate(-20deg); opacity: 0; }
-            100% { transform: scale(1) rotate(0); opacity: 1; }
-        }
-
-        .hidden { display: none !important; }
+        .stamp-mark-on { font-size: 12rem; position: absolute; animation: stampOn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes stampOn { 0% { transform: scale(0) rotate(-20deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 
         .btn {
             padding: 10px 20px; font-size: 1rem; background-color: #4CAF50;
             color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;
             box-shadow: 0 4px #2e7d32; margin: 5px;
         }
-        .btn-reset { background-color: #ff8c00; box-shadow: 0 4px #e67e22; }
+        .btn-reset { background-color: var(--primary-color); box-shadow: 0 4px #e67e22; }
         .btn-backup { background-color: #3498db; box-shadow: 0 4px #2980b9; }
         .btn-restore { background-color: #9b59b6; box-shadow: 0 4px #8e44ad; }
+        .btn-collection { background-color: #f1c40f; box-shadow: 0 4px #d4ac0d; color: #333; }
 
         #timer-display { font-size: 2.8rem; font-weight: bold; color: #333; margin: 5px 0; font-family: monospace; }
 
-        .shinkansen-area { 
-            width: 100%; max-width: 350px; 
-            height: 55px; 
-            margin: 5px auto; position: relative; overflow: hidden; 
-            background-color: #fff; border-radius: 10px; border: 1px solid #ddd; 
-        }
+        .shinkansen-area { width: 100%; max-width: 350px; height: 55px; margin: 5px auto; position: relative; overflow: hidden; background-color: #fff; border-radius: 10px; border: 1px solid #ddd; }
         .track { width: 100%; height: 4px; background-color: #8b4513; position: absolute; bottom: 10px; }
-        .shinkansen { 
-            width: 600px; height: auto; position: absolute; bottom: 10px; 
-            left: -640px; animation: driveForward 60s linear infinite; animation-play-state: paused; 
+        .shinkansen { width: 600px; height: auto; position: absolute; bottom: 10px; left: -650px; animation: driveForward 60s linear infinite; animation-play-state: paused; }
+        @keyframes driveForward { 0% { left: -650px; } 100% { left: 100%; } }
+
+        /* --- スペシャル獲得画面（アニメーション追加） --- */
+        #screen-special-award {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4, #fad0c4, #a1c4fd, #c2e9fb);
+            background-size: 400% 400%; animation: gradientBG 10s ease infinite;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;
+            
+            opacity: 0; transition: opacity 0.5s ease-out;
         }
-        @keyframes driveForward { 0% { left: -640px; } 100% { left: 100%; } }
+        #screen-special-award.show { opacity: 1; }
 
+        .award-content {
+            display: flex; flex-direction: column; align-items: center; width: 100%;
+            transform: scale(0.6) translateY(50px); opacity: 0;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); 
+        }
+        #screen-special-award.show .award-content { transform: scale(1) translateY(0); opacity: 1; }
+
+        @keyframes gradientBG { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
+        
+        .special-stamp-large { margin-bottom: 20px; filter: drop-shadow(0 0 20px rgba(255,215,0,0.8)); animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+        /* スプライト画像用 */
+        .sprite-stamp {
+            display: inline-block;
+            background-size: 500% 500%; 
+            background-repeat: no-repeat;
+        }
+
+        /* --- スタンプ帳（画像と日付の被りを解消） --- */
+        .collection-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 10px; max-width: 600px; margin: 0 auto; }
+        .collection-cell { 
+            background: #fff; border: 2px solid #ddd; border-radius: 8px; 
+            display: flex; flex-direction: column; position: relative; overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        /* ロック状態のマスはアスペクト比を固定 */
+        .collection-cell.locked { background: #e0e0e0; color: #999; font-size: 1.5rem; justify-content: center; align-items: center; aspect-ratio: 204.8 / 125; }
+        
+        /* 画像部分は指定比率を維持 */
+        .collection-cell .sprite-stamp { width: 100%; aspect-ratio: 204.8 / 111.8; }
+        
+        /* 【修正ポイント】日付部分の縦幅を小さくスッキリさせました */
+        .collection-date { 
+            width: 100%; background: #f8f8f8; font-size: 0.5rem; color: #333; font-weight: bold; 
+            padding: 2px 0; border-top: 1px solid #ddd; text-align: center; line-height: 1.2;
+        }
+
+        /* カレンダー */
         .calendar-nav { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 5px; }
-        .btn-nav { background-color: #fff; border: 2px solid #ff8c00; color: #ff8c00; border-radius: 50%; width: 35px; height: 35px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-
+        .btn-nav { background-color: #fff; border: 2px solid var(--primary-color); color: var(--primary-color); border-radius: 50%; width: 35px; height: 35px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin: 0 auto 10px; max-width: 700px;}
         .cal-cell { width: 98%; aspect-ratio: 1 / 0.7; display: flex; flex-direction: column; align-items: center; border: 1px solid #eee; border-radius: 4px; background-color: #fff; font-size: 0.7rem; padding: 1px; box-sizing: border-box; position: relative; container-type: inline-size; }
         .cal-header-cell { border: none; font-weight: bold; height: auto; aspect-ratio: auto; padding: 5px 0; }
         .sun, .holiday { color: #ff4d4d !important; background-color: #fff0f0; }
         .sat { color: #3498db !important; background-color: #f0faff; }
-        
-        .stamp-mark { 
-            font-size: 2.8rem; 
-            font-size: 40cqw; 
-            line-height: 1; margin-top: 4px; z-index: 1; display: flex; justify-content: center; align-items: center; 
-        }
-        
-        .holiday-name { font-size: 0.4rem; transform: scale(0.8); white-space: nowrap; margin-bottom: -2px; }
+        .stamp-mark { font-size: 40cqw; line-height: 1; margin-top: 4px; z-index: 1; display: flex; justify-content: center; align-items: center; }
         .day-number { position: relative; z-index: 2; font-weight: bold; }
-
         #restore-area { margin-top: 15px; padding: 15px; background-color: #f9f9f9; border: 2px dashed #ccc; border-radius: 10px; }
         #restore-text { width: 90%; height: 80px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; font-family: monospace; font-size: 0.8rem; resize: vertical; }
     </style>
@@ -111,6 +139,7 @@
         </div>
         <div class="btn-box">
             <button id="btn-to-calendar" class="btn">📅 カレンダー</button>
+            <button id="btn-to-collection-main" class="btn btn-collection">🎁 たからもの</button>
             <button id="btn-reset" class="btn btn-reset hidden">もういちど</button>
         </div>
     </div>
@@ -128,65 +157,122 @@
             <button id="btn-restore-toggle" class="btn btn-restore">📂 ふくげん</button>
         </div>
         <div id="restore-area" class="hidden">
-            <p style="font-size: 0.9rem; margin-top: 0;">バックアップテキストを貼り付けてね</p>
-            <textarea id="restore-text"></textarea><br>
+            <textarea id="restore-text" placeholder="ここに貼り付けてね"></textarea><br>
             <button id="btn-execute-restore" class="btn btn-restore" style="margin-top: 10px;">復元を実行</button>
         </div>
+    </div>
+
+    <div id="screen-special-award" class="hidden">
+        <div class="award-content">
+            <h1 style="color: white; text-shadow: 0 0 10px rgba(0,0,0,0.3); font-size: 2rem;">7にち れんぞく 達成！</h1>
+            <div id="special-stamp-display" class="special-stamp-large"></div>
+            <h2 style="color: white; font-size: 1.5rem;">スペシャルスタンプ ゲット！</h2>
+            <div class="btn-box">
+                <button id="btn-award-back" class="btn btn-reset">もどる</button>
+                <button id="btn-award-to-collection" class="btn btn-collection">スタンプちょうを見る</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-collection" class="screen hidden">
+        <h2 style="font-size: 1.5rem;">🎁 スペシャルスタンプちょう</h2>
+        <p style="font-size: 0.8rem; margin: 0; color: #555;">ぜんぶで 25こ！ コンプリートをめざそう</p>
+        <div id="collection-grid" class="collection-grid"></div>
+        <button id="btn-collection-back" class="btn" style="margin-top: 15px;">◀ もどる</button>
     </div>
 
     <audio id="sound-start" src="start.mp3" preload="auto"></audio>
     <audio id="sound-goal" src="goal.mp3" preload="auto"></audio>
 
     <script>
+        const SPECIAL_IMG_NUM = "001"; // 画像の数字に合わせて書き換えてください
+        const SPECIAL_IMG_URL = `./special/special_${SPECIAL_IMG_NUM}.png`;
+        const TOTAL_SPECIAL_STAMPS = 25; 
+
         const db = new Dexie("TimestampKidsDB");
         db.version(1).stores({ daily_records: "date, startTime, endTime, durationMinutes, status, earnedStamp" });
+        db.version(2).stores({ daily_records: "date, startTime, endTime, durationMinutes, status, earnedStamp", special_collection: "++id, date, stamp" });
+        db.version(3).stores({ daily_records: "date, startTime, endTime, durationMinutes, status, earnedStamp", special_collection: "++id, date, stampIndex, imgNum" });
+
+        db.open().catch(async function (err) {
+            alert("DB更新のためリセットします。バックアップから復元してください。");
+            await Dexie.delete("TimestampKidsDB"); location.reload();
+        });
 
         // 【重要】ここにGASのウェブアプリURLを貼り付けてください
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbw6e1MWyj66e9irFRh37lKYEuwobCS1v_YrX9YUdWvvAXgSHoZFOElx7r1yNmOSeoo/exec";
+        const GAS_URL = "ここにURLを貼り付けてね";
 
-        // --- 曜日別・大容量スタンプリスト ---
-        const rewardsByDay = {
-            1: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🦟","🦗","🕷️","🕸️","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐊","🐅","🐆","🦓","🦍","🦧","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🐐","🦌","🐕","🐩","🦮","🐕‍🦺","🐈","🐈‍⬛","🐓","🦃","🦚","🦜","🦢","🦩","🕊️","🐇","🦝","🦨","🦡","🦦","🦥","🐁","🐀","🐿️","🦔","🐾","🐉","🐲","🐚","🐌","🐜","🐝","🐞","🦋","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐙","🦑","🦀","🦞","🦐","🐢","🐍","🦎","🦖","🦕"],
-            2: ["🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐","🛻","🚚","🚛","🚜","🛵","🚲","🛴","🛺","🚉","🚆","🚄","🚅","🚈","🚂","🚋","🚃","🚞","💨","🛶","⛵","🚤","🛳️","⛴️","🚢","✈️","🛩️","🛫","🛬","🪂","💺","🚁","🚟","🚠","🚡","🚀","🛸","⛽","🏁","🚢","🏎️","🚲","🏍️","🚄","🚅","✈️","🚠","🛥️","🛳️","🚒","🚑","🚓","🚜","🚛","🚲","🚃","🚞","🚀","🛸","🚢","🚅"],
-            3: ["🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌽","🥕","🥔","🍠","🥐","🍞","🥜","🌰","🍄","🌲","🌳","🌴","🌵","🌾","🌿","☘️","🍀","🍁","🍂","🍃","🌸","💮","🏵️","🌹","🥀","🌺","🌻","🌼","🌷","🌱","🌲","🍇","🍓"],
-            4: ["🎹","🎸","🎻","🎺","🎷","🥁","🎼","🎵","🎶","🎙️","📻","🎧","🪕","🪗","🎸","🎹","🎺","🎻","🥁","🪘","🔔","📯","🪕","🎷","🎙️","📻","🎧","🎵","🎶","🎼"],
-            5: ["🍞","🥐","🥖","🥨","🥯","🥞","🍳","🥚","🧀"," bacon","🥩","🍗","🍖","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🥗","🥘","🍲","🍜","🍝","🍜","🍛","🍣","🍱","🥟","🍢","🍙","🍚","🍘","🍥","🍮","🍦","🍧","🍨","🍩","🍪","🎂","🍰","🧁","🥧","🍫","🍬","🍭","🍮","🍯","☕","🍵","🍶","🍷","🍸","🍹","🍺","🍻","🥂","🥃","🥤","🥘","🍲","🍳","🥣","🥡","🥩","🍗","🧀","🥓","🍜","🍝","🍦","🍩","🧁","🍔","🍣","🍢","🍮","🍯","🧁","🍙","🍛","🍲","🍳","🍕","🥨","🥟","🍡","🥐","🍷","🍺","🍰","🍨","🍗","🥘","🥣","🥯","🌽","🥦","🥐","🥨","🍳","🥚","🥟","🍢","🍧","🍰","🍩","🍯","🥞","🍳","🥗","🍲","🌮","🍗","🍛","🌭","🧀","🍰"],
-            6: ["✈️","🚢","🚠","🚇","🗼","⛩️","🎢🎡🎠","🏖️","🏝️","🌋","⛰️","🏕️","🏔️","🏜️","🏟️","🏯","🛖","🏢","🏨","🏫","🏪","🏤","🏛️","⛪","🕌","🛕","🛤️","🗺️","🗾","🇯🇵","🇦🇫","🇦🇽","🇦🇱","🇩🇿","🇦🇸","🇦🇩","🇦🇴","🇦🇮","🇦🇶","🇦🇬","🇦🇷","🇦🇲","🇦🇼","🇦🇺","🇦🇹","🇦🇿","🇧🇸","🇧🇭","🇧🇩","🇧🇧","🇧🇾","🇧🇪","🇧🇿","🇧🇯","🇧🇲","🇧🇹","🇧🇴","🇧🇦","🇧🇼","🇧🇷","🇻🇬","🇧🇳","🇧🇬","🇧🇫","🇧🇮","🇰🇭","🇨🇲","🇨🇦","🇮🇨","🇨🇻","🇧🇶","🇰🇾","🇨🇫","🇹🇩","🇨🇱","🇨🇳","🇨🇽","🇨🇨","🇨🇴","🇰🇲","🇨🇬","🇨🇩","🇨🇰","🇨🇷","🇨🇮","🇭🇷","🇨🇺","🇨🇼","🇨🇾","🇨🇿","🇩🇰","🇩🇯","🇩🇲","🇩🇴","🇪🇨","🇪🇬","🇸🇻","🇬🇶","🇪🇷","🇪🇪","🇪🇹","🇪🇺","🇫🇰","🇫🇴","🇫🇯","🇫🇮","🇫🇷","🇬🇫","🇵🇫","🇹🇫","🇬🇦","🇬🇲","🇬🇪","🇩🇪","🇬🇭","🇬🇮","🇬🇷","🇬🇱","🇬🇩","🇬🇵","🇬🇺","🇬🇹","🇬🇬","🇬🇳","🇬🇼","🇬🇾","🇭🇹","🇭🇳","🇭🇰","🇭🇺","🇮🇸","🇮🇳","🇮🇩","🇮🇷","🇮🇶","🇮🇪","🇮🇲","🇮🇱","🇮🇹","🇯🇲","🇯🇵","🇯🇪","🇯🇴","🇰🇿","🇰🇪","🇰🇮","🇽🇰","🇰🇼","🇰🇬","🇱🇦","🇱🇻","🇱🇧","🇱🇸","🇱🇷","🇱🇾","🇱🇮","🇱🇹","🇱🇺","🇲🇴","🇲🇰","🇲🇬","🇲🇼","🇲🇾","🇲🇻","🇲🇱","🇲🇹","🇲🇭","🇲🇶","🇲🇷","🇲🇺","🇾🇹","🇲🇽","🇫🇲","🇲🇩","🇲🇨","🇲🇳","🇲🇪","🇲🇸","🇲🇦","🇲🇿","🇲🇲","🇳🇦","🇳🇷","🇳🇵","🇳🇱","🇳🇨","🇳🇿","🇳🇮","🇳🇪","🇳🇬","🇳🇺","🇳🇫","🇰🇵","🇲🇵","🇳🇴","🇴🇲","🇵🇰","🇵🇼","🇵🇸","🇵🇦","🇵🇬","🇵🇾","🇵🇪","🇵🇭","🇵🇳","🇵🇱","🇵🇹","🇵🇷","🇶🇦","🇷🇪","🇷🇴","🇷🇺","🇷🇼","🇼🇸","🇸🇲","🇸🇹","🇸🇦","🇸🇳","🇷🇸","🇸🇨","🇸🇱","🇸🇬","🇸🇽","🇸🇰","🇸🇮","🇬🇸","🇸🇧","🇸🇴","🇿🇦","🇰🇷","🇸🇸","🇪🇸","🇱🇰","🇧🇱","🇸🇭","🇰🇳","🇱🇨","🇵🇲","🇻🇨","🇸🇩","🇸🇷","🇸🇿","🇸🇪","🇨🇭","🇸🇾","🇹🇼","🇹🇯","🇹🇿","🇹🇭","🇹🇱","🇹🇬","🇹🇰","🇹🇴","🇹🇹","🇹🇳","🇹🇷","🇹🇲","🇹🇨","🇹🇻","🇻🇮","🇺🇬","🇺🇦","🇦🇪","🇬🇧","🏴󠁧󠁢󠁥󠁮󠁧󠁿","🏴󠁧󠁢󠁳󠁣󠁴󠁿","🏴󠁧󠁢󠁷󠁬󠁳󠁿","🇺🇸","🇺🇾","🇺🇿","🇻🇺","🇻🇦","🇻🇪","🇻🇳","🇼🇫","🇪🇭","🇾🇪","🇿🇲","🇿🇼"],
-            0: ["⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🎱","🏓","🏸","🏒","🏑","🥍","🏏","🥅","⛳","🏹","🎣","🤿","🥊","🥋","⛸️","🎿","🛷","⛸️","🛹","⛹️","🏋️","🚴","🧗","🏇","🤺","🤽","🤾","🏄","🛶","⚽","⚾","⛳"]
+        function getSpritePosition(index) {
+            const col = index % 5;
+            const row = Math.floor(index / 5);
+            return `${col * 25}% ${row * 25}%`;
+        }
+
+        const rewardsByDay = { 
+            1: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🦟","🦗","🕷️","🕸️","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐊","🐅","🐆","🦓","🦍","🦧","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🐐","🦌","🐕","🐩","🦮","🐕‍🦺","🐈","🐈‍⬛","🐓","🦃","🦚","🦜","🦢","🦩","🕊️","🐇","🦝","🦨","🦡","🦦","🦥","🐁","🐀","🐿️","🦔","🐾","🐉","🐲","🐚","🐌","🐜","🐝","🐞","🦋","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐙","🦑","🦀","🦞","🦐","🐢","🐍","🦎","🦖","🦕"], 
+            2: ["🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐","🛻","🚚","🚛","🚜","🛵","🚲","🛴","🛺","🚉","🚆","🚄","🚅","🚈","🚂","🚋","🚃","🚞","💨","🛶","⛵","🚤","🛳️","⛴️","🚢","✈️","🛩️","🛫","🛬","🪂","💺","🚁","🚟","ケーブルカー","🚡","🚀","🛸","⛽","🏁","🚢","🏎️","🚲","🏍️","🚄","🚅","✈️","ケーブルカー","🛥️","🛳️","🚒","🚑","🚓","🚜","🚛","🚲","🚃","🚞","🚀","🛸","🚢","🚅"], 
+            3: ["🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌽","🥕","🥔","🍠","🥐","🍞","🥜","🌰","🍄","🌲","🌳","🌴","🌵","🌾","🌿","☘️","🍀","🍁","🍂","🍃","🌸","💮","🏵️","🌹","🥀","🌺","🌻","🌼","🌷","🌱","🌲","🍇","🍓"], 
+            4: ["🎹","🎸","🎻","🎺","🎷","🥁","🎼","🎵","🎶","🎙️","📻","🎧","🪕","🪗","🎸","🎹","🎺","🎻","🥁","🪘","🔔","📯","🪕","🎷","🎙️","📻","🎧","🎵","🎶","🎼"], 
+            5: ["🍞","🥐","🥖","🥨","🥯","🥞","🍳","🥚","🧀","🥓","🥩","🍗","🍖","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🥗","🥘","🍲","🍜","🍝","🍜","🍛","🍣","🍱","🥟","🍢","🍙","🍚","🍘","🍥","🍮","🍦","🍧","🍨","🍩","🍪","🎂","🍰","🧁","🥧","🍫","🍬","🍭","🍮","🍯","☕","🍵","🍶","🍷","🍸","🍹","🍺","🍻","🥂","🥃","🥤","🥘","🍲","🍳","🥣","🥡","🥩","🍗","🧀","🥓","🍜","🍝","🍦","🍩","🧁","🍔","🍣","🍢","🍮","🍯","🧁","🍙","🍛","🍲","🍳","🍕","🥨","🥟","🍡","🥐","🍷","🍺","🍰","🍨","🍗","🥘","🥣","🥯","🌽","🥦","🥐","🥨","🍳","🥚","🥟","🍢","🍧","🍰","🍩","🍯","🥞","🍳","🥗","🍲","🌮","🍗","🍛","🌭","🧀","🍰"], 
+            6: ["✈️","🚢","🚠","🚇","🗼","⛩️","🎢","🎡","🎠","🏖️","🏝️","🌋","⛰️","🏕️","🏔️","🏜️","🏟️","🏯","🛖","🏢","🏨","🏫","🏪","🏤","🏛️","⛪","🕌","🛕","🛤️","🗺️","🗾","🇯🇵","🇦🇫","🇦🇽","🇦🇱","🇩🇿","🇦🇸","🇦🇩","🇦🇴","🇦🇮","🇦🇶","🇦🇬","🇦🇷","🇦🇲","🇦🇼","🇦🇺","🇦🇹","🇦🇿","🇧🇸","🇧🇭","🇧🇩","🇧🇧","🇧🇾","🇧🇪","🇧🇿","🇧🇯","🇧🇲","🇧🇹","🇧🇴","🇧🇦","🇧🇼","🇧🇷","🇻🇬","🇧🇳","🇧🇬","🇧🇫","🇧🇮","🇰🇭","🇨🇲","🇨🇦","🇮🇨","🇨🇻","🇧🇶","🇰🇾","🇨🇫","🇹🇩","🇨🇱","🇨🇳","🇨🇽","🇨🇨","🇨🇴","🇰🇲","🇨🇬","🇨🇩","🇨🇰","🇨🇷","🇨🇮","🇭🇷","🇨🇺","🇨🇼","🇨🇾","🇨🇿","🇩🇰","🇩🇯","🇩🇲","🇩🇴","🇪🇨","🇪🇬","🇸🇻","🇬🇶","🇪🇷","🇪🇪","🇪🇹","🇪🇺","🇫🇰","🇫🇴","🇫🇯","🇫🇮","🇫🇷","🇬🇫","🇵🇫","🇹🇫","🇬🇦","🇬🇲","🇬🇪","🇩🇪","🇬🇭","🇬🇮","🇬🇷","🇬🇱","🇬🇩","🇬🇵","🇬🇺","🇬🇹","🇬🇬","🇬🇳","🇬🇼","🇬🇾","🇭🇹","🇭🇳","🇭🇰","🇭🇺","🇮🇸","🇮🇳","🇮🇩","🇮🇷","🇮🇶","🇮🇪","🇮🇲","🇮🇱","🇮🇹","🇯🇲","🇯🇵","🇯🇪","🇯🇴","🇰🇿","🇰🇪","🇰🇮","🇽🇰","🇰🇼","🇰🇬","🇱🇦","🇱🇻","🇱🇧","🇱🇸","🇱🇷","🇱🇾","🇱🇮","🇱🇹","🇱🇺","🇲🇴","🇲🇰","🇲🇬","🇲🇼","🇲🇾","🇲🇻","🇲🇱","🇲🇹","🇲🇭","🇲🇶","🇲🇷","🇲🇺","🇾🇹","🇲🇽","🇫🇲","🇲🇩","🇲🇨","🇲🇳","🇲🇪","🇲🇸","🇲🇦","🇲🇿","🇲🇲","🇳🇦","🇳🇷","🇳🇵","🇳🇱","🇳🇨","🇳🇿","🇳🇮","🇳🇪","🇳🇬","🇳🇺","🇳🇫","🇰🇵","🇲🇵","🇳🇴","🇴🇲","🇵🇰","🇵🇼","🇵🇸","🇵🇦","🇵🇬","🇵🇾","🇵🇪","🇵🇭","🇵🇳","🇵🇱","🇵🇹","🇵🇷","🇶🇦","🇷🇪","🇷🇴","🇷🇺","🇷🇼","🇼🇸","🇸🇲","🇸🇹","🇸🇦","🇸🇳","🇷🇸","🇸🇨","🇸🇱","🇸🇬","🇸🇽","🇸🇰","🇸🇮","🇬🇸","🇸🇧","🇸🇴","🇿🇦","🇰🇷","🇸🇸","🇪🇸","🇱🇰","🇧🇱","🇸🇭","🇰🇳","🇱🇨","🇵🇲","🇻🇨","🇸🇩","🇸🇷","🇸🇿","🇸🇪","🇨🇭","🇸🇾","🇹🇼","🇹🇯","🇹🇿","🇹🇭","🇹🇱","🇹🇬","🇹🇰","🇹🇴","🇹🇹","🇹🇳","🇹🇷","🇹🇲","🇹🇨","🇹🇻","🇻🇮","🇺🇬","🇺🇦","🇦🇪","🇬🇧","🏴󠁧󠁢󠁥󠁮󠁧󠁿","🏴󠁧󠁢󠁳󠁣󠁴󠁿","🏴󠁧󠁢󠁷󠁬󠁳󠁿","🇺🇸","🇺🇾","🇺🇿","🇻🇺","🇻🇦","🇻🇪","🇻🇳","🇼🇫","🇪🇭","🇾🇪","🇿🇲","🇿🇼"], 
+            0: ["⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🎱","🏓","🏸","🏒","🏑","🥍","🏏","🥅","⛳","🏹","🎣","🤿","🥊","🥋","⛸️","🎿","🛷","⛸️","🛹","⛹️","🏋️","🚴","🧗","🏇","🤺","🤽","🤾","🏄","🛶","⚽","⚾","⛳"] 
         };
-
         const holidays2026 = {"01-01":"元日","01-12":"成人の日","02-11":"建国記念","02-23":"天皇誕生日","03-20":"春分の日","04-29":"昭和の日","05-03":"憲法記念日","05-04":"みどりの日","05-05":"こどもの日","05-06":"振替休日","07-20":"海の日","08-11":"山の日","09-21":"敬老の日","09-22":"秋分の日","10-12":"スポーツの日","11-03":"文化の日","11-23":"勤労感謝","11-24":"振替休日"};
 
         let currentViewYear, currentViewMonth;
 
         function getTodayString() {
-            const t = new Date();
-            return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+            const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
         }
 
         function getFixedStamp(dateStr) {
             const parts = dateStr.split('-');
-            const y = parseInt(parts[0], 10);
-            const m = parseInt(parts[1], 10) - 1; 
-            const d = parseInt(parts[2], 10);
+            const y = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, d = parseInt(parts[2], 10);
             const date = new Date(y, m, d);
-            const dayOfWeek = date.getDay();
-            const list = rewardsByDay[dayOfWeek] || rewardsByDay[0];
-            const baseTime = Date.UTC(2026, 0, 1);
-            const targetTime = Date.UTC(y, m, d);
-            const diffTime = targetTime - baseTime;
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const weekIndex = Math.floor(diffDays / 7);
-            const finalIndex = Math.abs(weekIndex) % list.length;
-            return list[finalIndex];
+            const list = rewardsByDay[date.getDay()] || rewardsByDay[0];
+            const baseTime = Date.UTC(2026, 0, 1), targetTime = Date.UTC(y, m, d);
+            const weekIndex = Math.floor(Math.floor((targetTime - baseTime) / 86400000) / 7);
+            return list[Math.abs(weekIndex) % list.length];
+        }
+
+        async function getStreakCount() {
+            const records = await db.daily_records.toArray();
+            const completedDates = records.filter(r => r.status === 'completed').map(r => r.date);
+            const uniqueDates = [...new Set(completedDates)].sort((a, b) => b.localeCompare(a)); 
+            
+            if (uniqueDates.length === 0) return 0;
+            
+            const todayStr = getTodayString();
+            let checkDateStr = todayStr;
+            let streak = 0;
+            
+            if (!uniqueDates.includes(todayStr)) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                checkDateStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+                if (!uniqueDates.includes(checkDateStr)) return 0;
+            }
+            
+            let d = new Date(checkDateStr);
+            while (true) {
+                const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                if (uniqueDates.includes(dStr)) {
+                    streak++;
+                    d.setDate(d.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            return streak;
         }
 
         async function executeCloudBackup() {
             if (!GAS_URL || GAS_URL.includes("ここに")) return;
             try {
-                const allRecords = await db.daily_records.toArray();
-                fetch(GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(allRecords), headers: { "Content-Type": "text/plain" } });
-            } catch (err) { console.error("Backup failed", err); }
+                const records = await db.daily_records.toArray();
+                const specials = await db.special_collection.toArray();
+                fetch(GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({records, specials}), headers: { "Content-Type": "text/plain" } });
+            } catch (err) {}
         }
 
         const unifiedButton = document.getElementById('unified-button');
@@ -199,41 +285,35 @@
         const soundStart = document.getElementById('sound-start');
         const soundGoal = document.getElementById('sound-goal');
 
-        let startTime, timerInterval, unlockTimeout, currentState = 'idle';
-
-        function playStartSound() { soundStart.currentTime = 0; soundStart.play().catch(e=>{}); }
-        function playGoalSound() { soundGoal.currentTime = 0; soundGoal.play().catch(e=>{}); }
+        let startTime, timerInterval, currentState = 'idle';
 
         unifiedButton.addEventListener('click', async () => {
             if (currentState === 'idle') {
-                currentState = 'waiting';
-                startTime = Date.now();
-                shinkansen.style.animationPlayState = 'running';
-                mainMessage.innerText = 'しゅっぱつしんこう！';
-                playStartSound();
-                unifiedButton.className = 'stamp-area state-waiting';
-                labelText.innerText = 'まってね';
-                await db.daily_records.put({ date: getTodayString(), startTime: startTime, status: "in_progress" });
+                currentState = 'waiting'; startTime = Date.now();
+                shinkansen.style.animationPlayState = 'running'; mainMessage.innerText = 'しゅっぱつしんこう！';
+                soundStart.currentTime = 0; soundStart.play().catch(e=>{});
+                unifiedButton.className = 'stamp-area state-waiting'; labelText.innerText = 'まってね';
+                
+                try { await db.daily_records.put({ date: getTodayString(), startTime: startTime, status: "in_progress" }); } 
+                catch(e) { alert("エラーが発生しました。リロードしてください。"); return; }
+
                 timerInterval = setInterval(() => {
                     const sec = Math.floor((Date.now() - startTime) / 1000);
                     timerDisplay.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
                 }, 1000);
-                unlockTimeout = setTimeout(() => {
-                    currentState = 'active';
-                    unifiedButton.className = 'stamp-area state-active';
-                    labelText.innerText = 'ゴール！';
+                
+                setTimeout(() => {
+                    currentState = 'active'; unifiedButton.className = 'stamp-area state-active'; labelText.innerText = 'ゴール！';
                 }, 3000); 
+
             } else if (currentState === 'active') {
-                currentState = 'finished';
-                shinkansen.style.animationPlayState = 'paused';
-                clearInterval(timerInterval);
-                playGoalSound();
+                currentState = 'finished'; shinkansen.style.animationPlayState = 'paused'; clearInterval(timerInterval);
+                soundGoal.currentTime = 0; soundGoal.play().catch(e=>{});
                 confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
                 
                 const fixedStamp = getFixedStamp(getTodayString());
                 rewardDisplay.innerText = fixedStamp;
-                labelText.classList.add('hidden');
-                rewardDisplay.classList.remove('hidden');
+                labelText.classList.add('hidden'); rewardDisplay.classList.remove('hidden');
                 unifiedButton.className = 'stamp-area state-finished';
                 
                 const sec = Math.floor((Date.now() - startTime) / 1000);
@@ -241,99 +321,116 @@
                 btnReset.classList.remove('hidden');
                 
                 await db.daily_records.update(getTodayString(), { endTime: Date.now(), durationMinutes: Math.floor(sec/60), status: "completed", earnedStamp: fixedStamp });
+                
+                const currentStreak = await getStreakCount();
+                const todaysSpecial = await db.special_collection.where('date').equals(getTodayString()).first();
+                
+                if (currentStreak > 0 && currentStreak % 7 === 0 && !todaysSpecial) {
+                    const existingAwards = await db.special_collection.toArray();
+                    const awardIndex = existingAwards.length;
+                    
+                    if (awardIndex < TOTAL_SPECIAL_STAMPS) {
+                        await db.special_collection.add({ date: getTodayString(), stampIndex: awardIndex, imgNum: SPECIAL_IMG_NUM });
+                        
+                        setTimeout(() => {
+                            document.getElementById('special-stamp-display').innerHTML = `
+                                <div class="sprite-stamp" style="background-image: url('${SPECIAL_IMG_URL}'); background-position: ${getSpritePosition(awardIndex)}; width: 280px; height: 152px;"></div>
+                            `;
+                            const specialScreen = document.getElementById('screen-special-award');
+                            specialScreen.classList.remove('hidden');
+                            
+                            void specialScreen.offsetWidth;
+                            specialScreen.classList.add('show');
+                            
+                            setTimeout(() => {
+                                confetti({ particleCount: 250, spread: 120, origin: { y: 0.5 }, zIndex: 2000 });
+                            }, 400);
+
+                        }, 2000);
+                    }
+                }
                 executeCloudBackup();
             }
         });
 
-        document.getElementById('btn-backup').addEventListener('click', async () => {
-            const allRecords = await db.daily_records.toArray();
-            const blob = new Blob([JSON.stringify(allRecords, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'timestamp_kids_backup.json'; a.click(); URL.revokeObjectURL(url);
-        });
+        document.getElementById('btn-award-back').onclick = () => { 
+            const specialScreen = document.getElementById('screen-special-award');
+            specialScreen.classList.remove('show');
+            setTimeout(() => {
+                specialScreen.classList.add('hidden');
+                btnReset.click(); 
+            }, 500); 
+        };
+        
+        document.getElementById('btn-award-to-collection').onclick = () => { 
+            const specialScreen = document.getElementById('screen-special-award');
+            specialScreen.classList.remove('show');
+            setTimeout(() => {
+                specialScreen.classList.add('hidden');
+                showCollection(); 
+            }, 500); 
+        };
+        
+        document.getElementById('btn-to-collection-main').onclick = () => showCollection();
+        document.getElementById('btn-collection-back').onclick = () => { document.getElementById('screen-collection').classList.add('hidden'); document.getElementById('screen-main').classList.remove('hidden'); };
 
-        btnReset.addEventListener('click', () => {
-            currentState = 'idle'; timerDisplay.textContent = '00:00'; mainMessage.innerText = 'きょうのプリントをはじめよう！';
-            btnReset.classList.add('hidden'); unifiedButton.className = 'stamp-area state-idle';
-            labelText.classList.remove('hidden'); labelText.innerText = 'スタート'; rewardDisplay.classList.add('hidden');
-            shinkansen.style.animation = 'none'; shinkansen.offsetHeight; shinkansen.style.animation = null; shinkansen.style.animationPlayState = 'paused';
-        });
-
-        document.getElementById('btn-to-calendar').addEventListener('click', () => { 
-            const now = new Date(); currentViewYear = now.getFullYear(); currentViewMonth = now.getMonth();
+        async function showCollection() {
             document.getElementById('screen-main').classList.add('hidden');
-            document.getElementById('screen-calendar').classList.remove('hidden');
-            generateCalendar(); 
-        });
-        document.getElementById('btn-back-home').addEventListener('click', () => { 
-            document.getElementById('screen-calendar').classList.add('hidden');
-            document.getElementById('screen-main').classList.remove('hidden');
-        });
-
-        document.getElementById('btn-prev-month').addEventListener('click', () => {
-            currentViewMonth--; if (currentViewMonth < 0) { currentViewMonth = 11; currentViewYear--; }
-            generateCalendar();
-        });
-        document.getElementById('btn-next-month').addEventListener('click', () => {
-            currentViewMonth++; if (currentViewMonth > 11) { currentViewMonth = 0; currentViewYear++; }
-            generateCalendar();
-        });
-
-        const btnRestoreToggle = document.getElementById('btn-restore-toggle');
-        const restoreArea = document.getElementById('restore-area');
-        const btnExecuteRestore = document.getElementById('btn-execute-restore');
-        const restoreText = document.getElementById('restore-text');
-        btnRestoreToggle.addEventListener('click', () => { restoreArea.classList.toggle('hidden'); });
-        btnExecuteRestore.addEventListener('click', async () => {
-            const jsonString = restoreText.value.trim();
-            if (!jsonString) return alert("テキストを入力してね");
-            try {
-                const data = JSON.parse(jsonString);
-                if (Array.isArray(data)) {
-                    if (confirm("いまの記録を消して復元します。いいですか？")) {
-                        await db.daily_records.clear(); await db.daily_records.bulkPut(data);
-                        alert("復元したよ！"); restoreText.value = ''; restoreArea.classList.add('hidden'); generateCalendar();
-                    }
+            document.getElementById('screen-collection').classList.remove('hidden');
+            const awards = await db.special_collection.toArray();
+            let html = '';
+            
+            for(let i=0; i<TOTAL_SPECIAL_STAMPS; i++) {
+                const a = awards.find(aw => aw.stampIndex === i);
+                if (a) {
+                    const imgUrl = a.imgNum ? `./special/special_${a.imgNum}.png` : SPECIAL_IMG_URL;
+                    html += `<div class="collection-cell">
+                                <div class="sprite-stamp" style="background-image: url('${imgUrl}'); background-position: ${getSpritePosition(i)};"></div>
+                                <div class="collection-date">${a.date.slice(5).replace('-', '/')}</div>
+                             </div>`;
+                } else {
+                    html += `<div class="collection-cell locked">❓</div>`;
                 }
-            } catch (e) { alert("データの形式がちがうみたい…"); }
-        });
+            }
+            document.getElementById('collection-grid').innerHTML = html;
+        }
+
+        document.getElementById('btn-to-calendar').onclick = () => { const now = new Date(); currentViewYear = now.getFullYear(); currentViewMonth = now.getMonth(); document.getElementById('screen-main').classList.add('hidden'); document.getElementById('screen-calendar').classList.remove('hidden'); generateCalendar(); };
+        document.getElementById('btn-back-home').onclick = () => { document.getElementById('screen-calendar').classList.add('hidden'); document.getElementById('screen-main').classList.remove('hidden'); };
+        document.getElementById('btn-prev-month').onclick = () => { currentViewMonth--; if (currentViewMonth < 0) { currentViewMonth = 11; currentViewYear--; } generateCalendar(); };
+        document.getElementById('btn-next-month').onclick = () => { currentViewMonth++; if (currentViewMonth > 11) { currentViewMonth = 0; currentViewYear++; } generateCalendar(); };
+        btnReset.addEventListener('click', () => { currentState = 'idle'; timerDisplay.textContent = '00:00'; mainMessage.innerText = 'きょうのプリントをはじめよう！'; btnReset.classList.add('hidden'); unifiedButton.className = 'stamp-area state-idle'; labelText.classList.remove('hidden'); labelText.innerText = 'スタート'; rewardDisplay.classList.add('hidden'); shinkansen.style.animation = 'none'; shinkansen.offsetHeight; shinkansen.style.animation = null; shinkansen.style.animationPlayState = 'paused'; });
 
         async function generateCalendar() {
             document.getElementById('calendar-header').textContent = `${currentViewYear}年 ${currentViewMonth + 1}月`;
-            const firstDay = new Date(currentViewYear, currentViewMonth, 1).getDay();
-            const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
-            const records = await db.daily_records.toArray();
-            let html = '';
-            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-            dayNames.forEach((d, i) => {
-                let cls = i === 0 ? 'sun' : (i === 6 ? 'sat' : '');
-                html += `<div class="cal-cell cal-header-cell ${cls}">${d}</div>`;
-            });
+            const firstDay = new Date(currentViewYear, currentViewMonth, 1).getDay(); const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
+            const records = await db.daily_records.toArray(); let html = '';
+            ['日','月','火','水','木','金','土'].forEach((d, i) => { html += `<div class="cal-cell cal-header-cell ${i===0?'sun':i===6?'sat':''}">${d}</div>`; });
             for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell" style="border:none;"></div>`;
             for (let day = 1; day <= daysInMonth; day++) {
-                const dateObj = new Date(currentViewYear, currentViewMonth, day);
-                const dayOfWeek = dateObj.getDay();
-                const mStr = String(currentViewMonth + 1).padStart(2, '0');
-                const dStr = String(day).padStart(2, '0');
-                const dateKey = `${mStr}-${dStr}`;
+                const mStr = String(currentViewMonth + 1).padStart(2, '0'), dStr = String(day).padStart(2, '0');
+                const dateKey = `${mStr}-${dStr}`, dateStr = `${currentViewYear}-${mStr}-${dStr}`;
                 const isHoliday = currentViewYear === 2026 ? holidays2026[dateKey] : null;
-                let cellCls = '';
-                if (dayOfWeek === 0 || isHoliday) cellCls = 'sun'; else if (dayOfWeek === 6) cellCls = 'sat';
-                const dateStr = `${currentViewYear}-${mStr}-${dStr}`;
+                const dayOfWeek = new Date(currentViewYear, currentViewMonth, day).getDay();
+                let cellCls = (dayOfWeek === 0 || isHoliday) ? 'sun' : (dayOfWeek === 6 ? 'sat' : '');
                 const record = records.find(r => r.date === dateStr && r.status === "completed");
-                
-                // 【修正】カレンダーのスタンプは、再計算ではなくDBに保存された earnedStamp を優先して表示する
-                let stampIcon = '';
-                if (record) {
-                    stampIcon = record.earnedStamp ? record.earnedStamp : getFixedStamp(dateStr);
-                }
-                const stamp = record ? `<div class="stamp-mark">${stampIcon}</div>` : '';
-                
-                const holidayLabel = isHoliday ? `<div class="holiday-name">${isHoliday}</div>` : '';
-                html += `<div class="cal-cell ${cellCls}"><div class="day-number">${day}</div>${holidayLabel}${stamp}</div>`;
+                html += `<div class="cal-cell ${cellCls}"><div class="day-number">${day}</div>${isHoliday?`<div style="font-size:0.4rem;transform:scale(0.8);">${isHoliday}</div>`:''}${record?`<div class="stamp-mark">${record.earnedStamp||getFixedStamp(dateStr)}</div>`:''}</div>`;
             }
             document.getElementById('calendar-grid').innerHTML = html;
         }
+
+        document.getElementById('btn-backup').onclick = async () => { const records = await db.daily_records.toArray(); const specials = await db.special_collection.toArray(); const blob = new Blob([JSON.stringify({records, specials}, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'timestamp_kids_backup.json'; a.click(); };
+        document.getElementById('btn-restore-toggle').onclick = () => document.getElementById('restore-area').classList.toggle('hidden');
+        document.getElementById('btn-execute-restore').onclick = async () => {
+            try {
+                const data = JSON.parse(document.getElementById('restore-text').value);
+                if (confirm("記録を上書きしますか？")) {
+                    await db.daily_records.clear(); await db.special_collection.clear();
+                    await db.daily_records.bulkPut(data.records); await db.special_collection.bulkPut(data.specials);
+                    alert("復元完了！"); location.reload();
+                }
+            } catch(e) { alert("データがおかしいよ"); }
+        };
     </script>
 </body>
 </html>
