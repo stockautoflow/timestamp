@@ -29,6 +29,11 @@
         .screen { width: 100%; }
         .hidden { display: none !important; }
 
+        .btn-box {
+            display: flex; justify-content: center; align-items: center;
+            flex-wrap: wrap; gap: 8px; margin-top: 15px; padding-bottom: 15px;
+        }
+
         .button-container { display: flex; justify-content: center; align-items: center; margin: 10px 0; }
         .stamp-area {
             width: 280px; height: 280px; border-radius: 50%;
@@ -131,12 +136,14 @@
         <div class="shinkansen-area"><div class="track"></div><img id="shinkansen" class="shinkansen" src="shinkansen.png" alt="🚅"></div>
         <h2 id="main-message">きょうのプリントをはじめよう！</h2>
         <div id="timer-display">00:00</div>
+        
         <div class="button-container">
             <div id="unified-button" class="stamp-area state-idle">
                 <span id="label-text">スタート</span>
                 <span id="reward-display" class="stamp-mark-on hidden"></span>
             </div>
         </div>
+        
         <div class="btn-box">
             <button id="btn-to-calendar" class="btn">📅 カレンダー</button>
             <button id="btn-to-collection-main" class="btn btn-collection">🎁 たからもの</button>
@@ -164,7 +171,7 @@
 
     <div id="screen-special-award" class="hidden">
         <div class="award-content">
-            <h1 style="color: white; text-shadow: 0 0 10px rgba(0,0,0,0.3); font-size: 2rem;">7にち れんぞく 達成！</h1>
+            <h1 id="award-title" style="color: white; text-shadow: 0 0 10px rgba(0,0,0,0.3); font-size: 2rem;">7にち れんぞく 達成！</h1>
             <div id="special-stamp-display" class="special-stamp-large"></div>
             <h2 style="color: white; font-size: 1.5rem;">スペシャルスタンプ ゲット！</h2>
             <div class="btn-box">
@@ -178,16 +185,24 @@
         <h2 style="font-size: 1.5rem;">🎁 スペシャルスタンプちょう</h2>
         <p style="font-size: 0.8rem; margin: 0; color: #555;">ぜんぶで 25こ！ コンプリートをめざそう</p>
         <div id="collection-grid" class="collection-grid"></div>
-        <button id="btn-collection-back" class="btn" style="margin-top: 15px;">◀ もどる</button>
+        <div class="btn-box">
+            <button id="btn-collection-back" class="btn">◀ もどる</button>
+        </div>
     </div>
 
     <audio id="sound-start" src="start.mp3" preload="auto"></audio>
     <audio id="sound-goal" src="goal.mp3" preload="auto"></audio>
 
     <script>
+        // 【設定】スペシャルスタンプの画像パス
         const SPECIAL_IMG_NUM = "001"; // 画像の数字に合わせて書き換えてください
         const SPECIAL_IMG_URL = `./special/special_${SPECIAL_IMG_NUM}.png`;
         const TOTAL_SPECIAL_STAMPS = 25; 
+
+        // 【設定】特例ボーナスを獲得できるメインの日付
+        const SPECIAL_BONUS_DATE = "2026-06-14"; 
+        // 【設定】特例ボーナス日に連動して自動獲得される過去の日付リスト
+        const BONUS_ADDITIONAL_DATES = ["2026-06-11", "2026-06-13"];
 
         const db = new Dexie("TimestampKidsDB");
         db.version(1).stores({ daily_records: "date, startTime, endTime, durationMinutes, status, earnedStamp" });
@@ -322,10 +337,31 @@
                 
                 await db.daily_records.update(getTodayString(), { endTime: Date.now(), durationMinutes: Math.floor(sec/60), status: "completed", earnedStamp: fixedStamp });
                 
+                // 【新機能】特例ボーナス処理：指定日にスタンプを押すと過去の指定日分もクリアになる
+                if (getTodayString() === SPECIAL_BONUS_DATE) {
+                    for (const addDateStr of BONUS_ADDITIONAL_DATES) {
+                        const pastRecord = await db.daily_records.get(addDateStr);
+                        if (!pastRecord || pastRecord.status !== "completed") {
+                            await db.daily_records.put({
+                                date: addDateStr,
+                                startTime: Date.now() - 60000,
+                                endTime: Date.now(),
+                                durationMinutes: 1,
+                                status: "completed",
+                                earnedStamp: getFixedStamp(addDateStr)
+                            });
+                        }
+                    }
+                }
+
                 const currentStreak = await getStreakCount();
                 const todaysSpecial = await db.special_collection.where('date').equals(getTodayString()).first();
                 
-                if (currentStreak > 0 && currentStreak % 7 === 0 && !todaysSpecial) {
+                // 条件：7日連続、または「特例ボーナス日」
+                const isStreakAward = (currentStreak > 0 && currentStreak % 7 === 0);
+                const isBonusAward = (getTodayString() === SPECIAL_BONUS_DATE);
+                
+                if ((isStreakAward || isBonusAward) && !todaysSpecial) {
                     const existingAwards = await db.special_collection.toArray();
                     const awardIndex = existingAwards.length;
                     
@@ -333,6 +369,9 @@
                         await db.special_collection.add({ date: getTodayString(), stampIndex: awardIndex, imgNum: SPECIAL_IMG_NUM });
                         
                         setTimeout(() => {
+                            // タイトルをボーナス用に切り替える
+                            document.getElementById('award-title').innerText = isBonusAward && !isStreakAward ? "とくべつボーナス！" : "7にち れんぞく 達成！";
+
                             document.getElementById('special-stamp-display').innerHTML = `
                                 <div class="sprite-stamp" style="background-image: url('${SPECIAL_IMG_URL}'); background-position: ${getSpritePosition(awardIndex)}; width: 280px; height: 152px;"></div>
                             `;
