@@ -200,9 +200,9 @@
         const TOTAL_SPECIAL_STAMPS = 25; 
 
         // 【設定】特例ボーナスを獲得できるメインの日付
-        const SPECIAL_BONUS_DATE = "2026-06-14"; 
+        const SPECIAL_BONUS_DATE = "2026-06-21"; 
         // 【設定】特例ボーナス日に連動して自動獲得される過去の日付リスト
-        const BONUS_ADDITIONAL_DATES = ["2026-06-11", "2026-06-13"];
+        const BONUS_ADDITIONAL_DATES = ["2026-06-17", "2026-06-20"];
 
         const db = new Dexie("TimestampKidsDB");
         db.version(1).stores({ daily_records: "date, startTime, endTime, durationMinutes, status, earnedStamp" });
